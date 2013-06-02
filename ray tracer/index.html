@@ -170,6 +170,78 @@
         gl.drawArrays(gl.LINE_STRIP, 0, squareVertexPositionBuffer.numItems);
     }
 
+	//De Casteljau
+/**********************************************************************************************************/
+	//scale
+	function scale(s, p)
+	{		
+		temp = p.slice();
+		for(var i =0; i <3; i++)
+		{
+			temp[i]*=s;
+		}
+		return temp;
+	}
+
+	//add the points
+	function add(p0, p1, p2, p3)
+	{
+		var result = new Array();
+		for(var i =0; i <3; i++)
+		{
+			result[i] = p0[i] + p1[i] + p2[i] + p3[i];
+		}
+		return result;
+	}
+
+	//4 initial points
+	var p0 = [-0.75, 0.375, 0.0];
+	var p1 = [-0.375, 0.75, 0.0];
+	var p2 = [0.375, 0.75, 0.0];
+	var p3 = [0.75, 0.375, 0.0];
+
+	//how many points to generate
+	var numPoints = 100;
+
+	//calc new points
+	function genPoint(u)
+	{
+		var b0 = (1.-u) * (1.-u) * (1.-u);
+		var b1 = 3. * u * (1.-u) * (1.-u);
+		var b2 = 3. * u * u * (1.-u);
+		var b3 = u * u * u;
+
+		//temps
+		var p0T = scale(b0, p0);
+		var p1T = scale(b1, p1);
+		var p2T = scale(b2, p2);
+		var p3T = scale(b3, p3);
+
+		//get resultant point
+		var point = add(p0T, p1T, p2T, p3T);
+		return point;
+	}	
+
+	//generate new points from coeff
+	//--use points to init vtx buffer
+	function tessellate(array)
+	{
+		for( var i = 0; i <= numPoints; i++)
+		{
+			//get new point
+			var u = (i/numPoints);
+			var newPoint = genPoint(u);
+			//add to array
+			for(var j = 0; j < 3; j++)
+			{
+				array.push(newPoint[j]);			
+			}		
+		}
+	}
+
+/**********************************************************************************************************/
+
+
     function webGLStart() {
         var canvas = document.getElementById("lesson02-canvas");
         initGL(canvas);
