@@ -9,22 +9,25 @@
 <script id="shader-fs" type="x-shader/x-fragment">
     precision mediump float;
 
+    varying vec4 vColor;
+
     void main(void) {
-        gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+        gl_FragColor = vColor;
     }
 </script>
 
 <script id="shader-vs" type="x-shader/x-vertex">
     attribute vec3 aVertexPosition;
+    attribute vec4 aVertexColor;
 
     uniform mat4 uMVMatrix;
     uniform mat4 uPMatrix;
 
-	uniform float pointSize;
+    varying vec4 vColor;
 
     void main(void) {
         gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
-	gl_PointSize = 2.0;
+        vColor = aVertexColor;
     }
 </script>
 
@@ -97,10 +100,13 @@
             alert("Could not initialise shaders");
         }
 
-        gl.useProgram(shaderProgram);	
+        gl.useProgram(shaderProgram);
 
         shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
         gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+
+        shaderProgram.vertexColorAttribute = gl.getAttribLocation(shaderProgram, "aVertexColor");
+        gl.enableVertexAttribArray(shaderProgram.vertexColorAttribute);
 
         shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
         shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
@@ -117,33 +123,55 @@
 
 
     var triangleVertexPositionBuffer;
+    var triangleVertexColorBuffer;
     var squareVertexPositionBuffer;
-    var vertices = new Array();
+    var squareVertexColorBuffer;
 
     function initBuffers() {
-	//triangle buffer
         triangleVertexPositionBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
-
-	//init buffer w calculated pts
-	tessellate(vertices);
-
+        var vertices = [
+             0.0,  1.0,  0.0,
+            -1.0, -1.0,  0.0,
+             1.0, -1.0,  0.0
+        ];
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
         triangleVertexPositionBuffer.itemSize = 3;
-        triangleVertexPositionBuffer.numItems = 100;
+        triangleVertexPositionBuffer.numItems = 3;
 
-	//hull buffer
-	squareVertexPositionBuffer = gl.createBuffer();
+        triangleVertexColorBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexColorBuffer);
+        var colors = [
+            1.0, 0.0, 0.0, 1.0,
+            0.0, 1.0, 0.0, 1.0,
+            0.0, 0.0, 1.0, 1.0
+        ];
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+        triangleVertexColorBuffer.itemSize = 4;
+        triangleVertexColorBuffer.numItems = 3;
+
+
+        squareVertexPositionBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
-
-	hull = [-.75, .375, 0.0,
-		-0.375, 0.75, 0.0,
-		0.375, 0.75, 0.0,
-		0.75, 0.375, 0.0
-		];
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(hull), gl.STATIC_DRAW);
+        vertices = [
+             1.0,  1.0,  0.0,
+            -1.0,  1.0,  0.0,
+             1.0, -1.0,  0.0,
+            -1.0, -1.0,  0.0
+        ];
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
         squareVertexPositionBuffer.itemSize = 3;
         squareVertexPositionBuffer.numItems = 4;
+
+        squareVertexColorBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexColorBuffer);
+        colors = [];
+        for (var i=0; i < 4; i++) {
+            colors = colors.concat([0.5, 0.5, 1.0, 1.0]);
+        }
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+        squareVertexColorBuffer.itemSize = 4;
+        squareVertexColorBuffer.numItems = 4;
     }
 
 
@@ -153,93 +181,30 @@
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
         mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
-        mat4.identity(mvMatrix);
-        mat4.translate(mvMatrix, [0.0, 0.0, -7.0]);
 
-	//draw pts
+        mat4.identity(mvMatrix);
+
+        mat4.translate(mvMatrix, [-1.5, 0.0, -7.0]);
         gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
         gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, triangleVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
-        setMatrixUniforms();
-        gl.drawArrays(gl.POINTS, 0, triangleVertexPositionBuffer.numItems);
-	
 
-	//draw hull
-	gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
-        gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, squareVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+        gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexColorBuffer);
+        gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, triangleVertexColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
         setMatrixUniforms();
-        gl.drawArrays(gl.LINE_STRIP, 0, squareVertexPositionBuffer.numItems);
+        gl.drawArrays(gl.TRIANGLES, 0, triangleVertexPositionBuffer.numItems);
+
+        mat4.translate(mvMatrix, [3.0, 0.0, 0.0]);
+        gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
+        gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, squareVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexColorBuffer);
+        gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, squareVertexColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+        setMatrixUniforms();
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, squareVertexPositionBuffer.numItems);
     }
 
-	//De Casteljau
-/**********************************************************************************************************/
-	//scale
-	function scale(s, p)
-	{		
-		temp = p.slice();
-		for(var i =0; i <3; i++)
-		{
-			temp[i]*=s;
-		}
-		return temp;
-	}
-
-	//add the points
-	function add(p0, p1, p2, p3)
-	{
-		var result = new Array();
-		for(var i =0; i <3; i++)
-		{
-			result[i] = p0[i] + p1[i] + p2[i] + p3[i];
-		}
-		return result;
-	}
-
-	//4 initial points
-	var p0 = [-0.75, 0.375, 0.0];
-	var p1 = [-0.375, 0.75, 0.0];
-	var p2 = [0.375, 0.75, 0.0];
-	var p3 = [0.75, 0.375, 0.0];
-
-	//how many points to generate
-	var numPoints = 100;
-
-	//calc new points
-	function genPoint(u)
-	{
-		var b0 = (1.-u) * (1.-u) * (1.-u);
-		var b1 = 3. * u * (1.-u) * (1.-u);
-		var b2 = 3. * u * u * (1.-u);
-		var b3 = u * u * u;
-
-		//temps
-		var p0T = scale(b0, p0);
-		var p1T = scale(b1, p1);
-		var p2T = scale(b2, p2);
-		var p3T = scale(b3, p3);
-
-		//get resultant point
-		var point = add(p0T, p1T, p2T, p3T);
-		return point;
-	}	
-
-	//generate new points from coeff
-	//--use points to init vtx buffer
-	function tessellate(array)
-	{
-		for( var i = 0; i <= numPoints; i++)
-		{
-			//get new point
-			var u = (i/numPoints);
-			var newPoint = genPoint(u);
-			//add to array
-			for(var j = 0; j < 3; j++)
-			{
-				array.push(newPoint[j]);			
-			}		
-		}
-	}
-
-/**********************************************************************************************************/
 
 
     function webGLStart() {
@@ -247,6 +212,7 @@
         initGL(canvas);
         initShaders();
         initBuffers();
+
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
         gl.enable(gl.DEPTH_TEST);
 
@@ -260,9 +226,12 @@
 
 
 <body onload="webGLStart();">
-  
+    <a href="http://learningwebgl.com/blog/?p=134">&lt;&lt; Back to Lesson 2</a><br />
+
     <canvas id="lesson02-canvas" style="border: none;" width="500" height="500"></canvas>
 
+    <br/>
+    <a href="http://learningwebgl.com/blog/?p=134">&lt;&lt; Back to Lesson 2</a><br />
 </body>
 
 </html>
