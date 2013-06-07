@@ -50,10 +50,22 @@
 	<!-- End Shaders -->
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js"></script>
 	<script src="js/Three.js"></script>
+	<script src="js/Detector.js"></script>
+	<script src="js/Stats.js"></script>
 	<script src="js/TrackballControls.js"></script>
+	<script src="js/THREEx.KeyboardState.js"></script>
+	<script src="js/THREEx.FullScreen.js"></script>
+	<script src="js/THREEx.WindowResize.js"></script>
 
 	<script type="text/javascript">
+	
+	var renderer, camera, scene, container, controls, stats;
 
+	init();
+	animate();
+
+	function init()
+{
 	// set the scene size
 	var WIDTH = 400,
 	    HEIGHT = 300;
@@ -66,21 +78,41 @@
 
 	// get the DOM element to attach to
 	// - assume we've got jQuery to hand
-	var $container = $('#container');
+	$container = $('#container');
 
 	// create a WebGL renderer, camera
 	// and a scene
-	var renderer = new THREE.WebGLRenderer();
-	var camera = new THREE.PerspectiveCamera(
+	renderer = new THREE.WebGLRenderer();
+	camera = new THREE.PerspectiveCamera(
 		VIEW_ANGLE,
     ASPECT,
     NEAR,
     FAR  );
-	var scene = new THREE.Scene();
+	scene = new THREE.Scene();
 
 	// the camera starts at 0,0,0 so pull it back
 	camera.position.z = 300;
 
+	//////////////
+	// CONTROLS //
+	//////////////
+
+	// move mouse and: left   click (or hold 'A') to rotate, 
+	//                 middle click (or hold 'S') to zoom, 
+	//                 right  click (or hold 'D') to pan
+	controls = new THREE.TrackballControls( camera );
+	controls.addEventListener( 'change', render );
+	///////////
+	// STATS //
+	///////////
+	
+	// displays current and past frames per second attained by scene
+	//stats = new Stats();
+	//stats.domElement.style.position = 'absolute';
+	//stats.domElement.style.bottom = '0px';
+	//stats.domElement.style.zIndex = 100;
+	//container.appendChild( stats.domElement );
+	
 	// start the renderer
 	renderer.setSize(WIDTH, HEIGHT);
 
@@ -95,7 +127,7 @@
 
 	// set up the sphere vars
 	var radius = 50, segments = 16, rings = 16;
-	var radius1 = 25, segments = 8, rings = 8;
+	var radius1 = 25, segments1 = 8, rings1 = 8;
 
 	// create a new mesh with sphere geometry -
 	// we will cover the sphereMaterial next!
@@ -103,7 +135,7 @@
 	   new THREE.SphereGeometry(radius, segments, rings),
 	   shaderMaterial);
 	var sphere1 = new THREE.Mesh(
-	   new THREE.SphereGeometry(radius, segments, rings),
+	   new THREE.SphereGeometry(radius1, segments1, rings1),
 	   shaderMaterial);
 
 	sphere1.position.set(50, 50, -50);
@@ -112,8 +144,19 @@
 	scene.add(sphere1);
 	scene.add(sphere);
 	scene.add(camera);
+}
 
-	renderer.render(scene, camera);
+	function animate()
+	{
+		requestAnimationFrame( animate );
+		controls.update();
+	}
+
+	function render()
+	{
+		renderer.render( scene, camera );
+		//stats.update();
+	}
 
 	</script>
 </html>
