@@ -94,6 +94,7 @@
 
 	// set up the sphere vars
 	var radius = 50, segments = 16, rings = 16;
+	var radius1 = 25, segments1 = 8, rings1 = 8;
 
 	// create a new mesh with sphere geometry -
 	// we will cover the sphereMaterial next!
@@ -101,8 +102,13 @@
 	   new THREE.SphereGeometry(radius, segments, rings),
 	   shaderMaterial);
 
+	var sphere1 = new new THREE.Mesh(
+	   new THREE.SphereGeometry(radius1, segments1, rings1),
+	   shaderMaterial);
+
 	// add the sphere and camera to the scene
 	scene.add(sphere);
+	scene.add(sphere1);
 	scene.add(camera);
 
 	renderer.render(scene, camera);

@@ -1,163 +1,119 @@
+<!doctype html>
 <html>
+	<head>
+		<meta charset="utf-8" />
+		<title>Sample Three.js</title>
+		<style>
+			#container {
+				background: #000;
+				width: 400px;
+				height: 300px;
+			}
+		</style>
+	</head>
+	<body>
 
-<head>
-<title>Learning WebGL &mdash; lesson 2</title>
-<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
-
-<script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
-
-<script id="shader-fs" type="x-shader/x-fragment">
-    precision mediump float;
-
-    void main(void) {
-        gl_FragColor = vec4(0.0, gl_FragCoord.y/512.0, 0.0, 1.0);
-    }
-</script>
-
-<script id="shader-vs" type="x-shader/x-vertex">
-    attribute vec3 aVertexPosition;
-
-    void main(void) {
-        gl_Position = vec4(aVertexPosition, 1.0);
-    }
-</script>
+		<div id="container">
 
 
-<script type="text/javascript">
+		</div>
 
-    var gl;
+	</body>
+	<!-- Shaders -->
+	<script type="x-shader/x-vertex" id="vertexshader">
 
-    function initGL(canvas) {
-        try {
-            gl = canvas.getContext("experimental-webgl");
-            gl.viewportWidth = canvas.width;
-            gl.viewportHeight = canvas.height;
-        } catch (e) {
-        }
-        if (!gl) {
-            alert("Could not initialise WebGL, sorry :-(");
-        }
-    }
+		// switch on high precision floats
+		#ifdef GL_ES
+		precision highp float;
+		#endif
 
+		void main()
+		{
+			gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
+		}
 
-    function getShader(gl, id) {
-        var shaderScript = document.getElementById(id);
-        if (!shaderScript) {
-            return null;
-        }
+	</script>
 
-        var str = "";
-        var k = shaderScript.firstChild;
-        while (k) {
-            if (k.nodeType == 3) {
-                str += k.textContent;
-            }
-            k = k.nextSibling;
-        }
+	<script type="x-shader/x-fragment" id="fragmentshader">
 
-        var shader;
-        if (shaderScript.type == "x-shader/x-fragment") {
-            shader = gl.createShader(gl.FRAGMENT_SHADER);
-        } else if (shaderScript.type == "x-shader/x-vertex") {
-            shader = gl.createShader(gl.VERTEX_SHADER);
-        } else {
-            return null;
-        }
+		#ifdef GL_ES
+		precision highp float;
+		#endif
 
-        gl.shaderSource(shader, str);
-        gl.compileShader(shader);
+		void main()
+		{
+			gl_FragColor = vec4(1.0,0.0,1.0,1.0);
+		}
 
-        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-            alert(gl.getShaderInfoLog(shader));
-            return null;
-        }
+	</script>
 
-        return shader;
-    }
+	<!-- End Shaders -->
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js"></script>
+	<script src="js/Three.js"></script>
+	<script src="js/TrackballControls.js"></script>
 
+	<script type="text/javascript">
 
-    var shaderProgram;
+	// set the scene size
+	var WIDTH = 400,
+	    HEIGHT = 300;
 
-    function initShaders() {
-        var fragmentShader = getShader(gl, "shader-fs");
-        var vertexShader = getShader(gl, "shader-vs");
+	// set some camera attributes
+	var VIEW_ANGLE = 45,
+	    ASPECT = WIDTH / HEIGHT,
+	    NEAR = 1,
+	    FAR = 1000;
 
-        shaderProgram = gl.createProgram();
-   	gl.attachShader(shaderProgram, vertexShader);
-    gl.attachShader(shaderProgram, fragmentShader);
-    gl.linkProgram(shaderProgram);
+	// get the DOM element to attach to
+	// - assume we've got jQuery to hand
+	var $container = $('#container');
 
-    if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
-      alert("Could not initialise shaders");
-    }
+	// create a WebGL renderer, camera
+	// and a scene
+	var renderer = new THREE.WebGLRenderer();
+	var camera = new THREE.PerspectiveCamera(
+		VIEW_ANGLE,
+    ASPECT,
+    NEAR,
+    FAR  );
+	var scene = new THREE.Scene();
 
-    gl.useProgram(shaderProgram);
+	// the camera starts at 0,0,0 so pull it back
+	camera.position.z = 300;
 
-    aVertexPosition = gl.getAttribLocation(shaderProgram, "aVertexPosition");
-    gl.enableVertexAttribArray(aVertexPosition);
+	// start the renderer
+	renderer.setSize(WIDTH, HEIGHT);
 
-    }
+	// attach the render-supplied DOM element
+	$container.append(renderer.domElement);
 
-    function initBuffers() {
-        vertexPositionBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexPositionBuffer);
-    var vertices = [
-      /*   0.5,  0.5,
-        -0.5,  0.5,
-         0.5, -0.5,
-        -0.5, -0.5,*/
+	// create the sphere's material
+	var shaderMaterial = new THREE.ShaderMaterial({
+		vertexShader:   $('#vertexshader').text(),
+		fragmentShader: $('#fragmentshader').text()
+	});
 
-	1.0,  1.0,
-        -1.0,  1.0,
-         1.0, -1.0,
-        -1.0, -1.0,
+	// set up the sphere vars
+	var radius = 50, segments = 16, rings = 16;
+	var radius1 = 25, segments = 8, rings = 8;
 
-    ];
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-    vertexPositionBuffer.itemSize = 2;
-    vertexPositionBuffer.numItems = 4;
-    }
+	// create a new mesh with sphere geometry -
+	// we will cover the sphereMaterial next!
+	var sphere = new THREE.Mesh(
+	   new THREE.SphereGeometry(radius, segments, rings),
+	   shaderMaterial);
+	var sphere1 = new THREE.Mesh(
+	   new THREE.SphereGeometry(radius, segments, rings),
+	   shaderMaterial);
 
+	sphere1.position.set(50, 50, -50);
 
+	// add the sphere and camera to the scene
+	scene.add(sphere1);
+	scene.add(sphere);
+	scene.add(camera);
 
-    function drawScene() {
-        gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);   
+	renderer.render(scene, camera);
 
-	gl.bindBuffer(gl.ARRAY_BUFFER, vertexPositionBuffer);
-    	gl.vertexAttribPointer(aVertexPosition, vertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
-
-	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-        
-    }
-
-
-
-    function webGLStart() {
-        var canvas = document.getElementById("lesson02-canvas");
-        initGL(canvas);
-        initShaders();
-        initBuffers();
-
-        gl.clearColor(0.0, 0.0, 0.0, 1.0);
-        gl.enable(gl.DEPTH_TEST);
-
-        drawScene();
-    }
-
-</script>
-
-
-</head>
-
-
-<body onload="webGLStart();">
-    <a href="http://learningwebgl.com/blog/?p=134">&lt;&lt; Back to Lesson 2</a><br />
-
-    <canvas id="lesson02-canvas" style="border: none;" width="512" height="512"></canvas>
-
-    <br/>
-    <a href="http://learningwebgl.com/blog/?p=134">&lt;&lt; Back to Lesson 2</a><br />
-</body>
-
+	</script>
 </html>
