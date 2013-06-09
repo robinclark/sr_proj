@@ -1,0 +1,291 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>Sample Three.js</title>
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				color: #ffffff;
+				font-family:Monospace;
+				font-size:13px;
+				text-align:center;
+				font-weight: bold;
+				background-color: #000000;
+				margin: 0px;
+				overflow: hidden;
+			}
+
+			#info {
+				position: absolute;
+				top: 0px; width: 100%;
+				padding: 5px;
+			}
+
+			a {
+				color: #ffffff;
+			}
+		</style>
+	</head>
+	<body>
+
+		<div id="container"></div>
+
+	</body>
+	<!-- Shaders -->
+	<script id="fragment_shader_pass1" type="x-shader/x-fragment">
+  precision mediump float;
+
+  const vec3 lightDir = vec3(0.577350269, 0.577350269, -0.577350269);
+  varying vec3 vPosition;
+  uniform vec3 cameraPos;
+  uniform vec3 sphere1Center;
+  uniform vec3 sphere2Center;
+  uniform vec3 sphere3Center;
+
+  bool intersectSphere(vec3 center, vec3 lStart, vec3 lDir,
+                       out float dist) {
+    vec3 c = center - lStart;
+    float b = dot(lDir, c);
+    float d = b*b - dot(c, c) + 1.0;
+    if (d < 0.0) {
+      dist = 10000.0;
+      return false;
+    }
+
+    dist = b - sqrt(d);
+    if (dist < 0.0) {
+      dist = 10000.0;
+      return false;
+    }
+
+    return true;
+  }
+
+  vec3 lightAt(vec3 N, vec3 V, vec3 color) {
+    vec3 L = lightDir;
+    vec3 R = reflect(-L, N);
+
+    float c = 0.3 + 0.4 * pow(max(dot(R, V), 0.0), 30.0) + 0.7 * dot(L, N);
+
+    if (c > 1.0) {
+      return mix(color, vec3(1.6, 1.6, 1.6), c - 1.0);
+    }
+
+    return c * color;
+  }
+
+  bool intersectWorld(vec3 lStart, vec3 lDir, out vec3 pos,
+                      out vec3 normal, out vec3 color) {
+    float d1, d2, d3;
+    bool h1, h2, h3;
+
+    h1 = intersectSphere(sphere1Center, lStart, lDir, d1);
+    h2 = intersectSphere(sphere2Center, lStart, lDir, d2);
+    h3 = intersectSphere(sphere3Center, lStart, lDir, d3);
+
+    if (h1 && d1 < d2 && d1 < d3) {
+      pos = lStart + d1 * lDir;
+      normal = pos - sphere1Center;
+      color = vec3(0.0, 0.0, 0.9);
+    }
+    else if (h2 && d2 < d3) {
+      pos = lStart + d2 * lDir;
+      normal = pos - sphere2Center;
+      color = vec3(0.9, 0.0, 0.0);
+    }
+    else if (h3) {
+      pos = lStart + d3 * lDir;
+      normal = pos - sphere3Center;
+      color = vec3(0.0, 0.9, 0.0);
+    }
+    else if (lDir.y < -0.01) {
+      pos = lStart + ((lStart.y + 2.7) / -lDir.y) * lDir;
+      if (pos.x*pos.x + pos.z*pos.z > 30.0) {
+        return false;
+      }
+      normal = vec3(0.0, 1.0, 0.0);
+      if (fract(pos.x / 5.0) > 0.5 == fract(pos.z / 5.0) > 0.5) {
+        color = vec3(1.0);
+      }
+      else {
+        color = vec3(0.0);
+      }
+    }
+    else {
+     return false;
+    }
+
+    return true;
+  }
+
+  void main(void)
+  {
+    vec3 cameraDir = normalize(vPosition - cameraPos);
+
+    vec3 p1, norm, p2;
+    vec3 col, colT, colM, col3;
+    if (intersectWorld(cameraPos, cameraDir, p1,
+                       norm, colT)) {
+      col = lightAt(norm, -cameraDir, colT);
+      colM = (colT + vec3(0.7)) / 1.7;
+      cameraDir = reflect(cameraDir, norm);
+      if (intersectWorld(p1, cameraDir, p2, norm, colT)) {
+        col += lightAt(norm, -cameraDir, colT) * colM;
+        colM *= (colT + vec3(0.7)) / 1.7;
+        cameraDir = reflect(cameraDir, norm);
+        if (intersectWorld(p2, cameraDir, p1, norm, colT)) {
+          col += lightAt(norm, -cameraDir, colT) * colM;
+        }
+      }
+
+      gl_FragColor = vec4(col, 1.0);
+    }
+    else {
+      gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+    }
+  }
+</script>
+
+	<script id="fragment_shader_screen" type="x-shader/x-fragment">
+
+			varying vec2 vUv;
+			uniform sampler2D tDiffuse;
+
+			void main() {
+
+				gl_FragColor = texture2D( tDiffuse, vUv );
+
+			}
+
+	</script>
+
+	<script type="x-shader/x-vertex" id="vertexshader">
+
+		// switch on high precision floats
+		#ifdef GL_ES
+		precision highp float;
+		#endif
+
+		varying vec2 vUv;
+
+		void main()
+		{
+			vUv = uv;
+			gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
+		}
+
+	</script>
+	<!-- End Shaders -->
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js"></script>
+	<script src="js/Three.js"></script>
+	<script src="js/Detector.js"></script>
+	<script src="js/Stats.js"></script>
+	<script src="js/TrackballControls.js"></script>
+	<script src="js/THREEx.KeyboardState.js"></script>
+	<script src="js/THREEx.FullScreen.js"></script>
+	<script src="js/THREEx.WindowResize.js"></script>
+
+	<script type="text/javascript">
+	
+	var renderer, camera, scene, container, controls, stats, uniforms;
+
+	init();
+	animate();
+
+	function init()
+{
+	// set the scene size
+
+	// @see http://paulirish.com/2011/requestanimationframe-for-smart-animating/
+	window.requestAnimFrame = (function(){
+      return  window.requestAnimationFrame       || 
+              window.webkitRequestAnimationFrame || 
+              window.mozRequestAnimationFrame    || 
+              window.oRequestAnimationFrame      || 
+              window.msRequestAnimationFrame     || 
+              function(/* function */ callback, /* DOMElement */ element){
+                window.setTimeout(callback, 1000 / 60);
+              };
+    })();	
+
+
+	// get the DOM element to attach to
+	container = document.getElementById( 'container' );
+
+	cameraRTT = new THREE.OrthographicCamera( window.innerWidth / - 2, window.innerWidth / 2, window.innerHeight / 2, window.innerHeight / - 2, -10000, 10000 );
+	cameraRTT.position.z = 100;
+
+	camera = new THREE.OrthographicCamera( window.innerWidth / - 2, window.innerWidth / 2, window.innerHeight / 2, window.innerHeight / - 2, -10000, 10000 );
+	camera.position.z = 100;
+
+	//renderer
+	renderer = new THREE.WebGLRenderer();
+	renderer.setSize( window.innerWidth, window.innerHeight );
+	renderer.autoClear = false;
+	container.appendChild( renderer.domElement );
+
+	//scenes
+	scene = new THREE.Scene();
+	sceneRTT = new THREE.Scene();
+
+	//stats
+	stats = new Stats();
+	stats.domElement.style.position = 'absolute';
+	stats.domElement.style.top = '0px';
+	container.appendChild( stats.domElement );
+
+	//////////////
+	// CONTROLS //
+	//////////////
+
+	// move mouse and: left   click (or hold 'A') to rotate, 
+	//                 middle click (or hold 'S') to zoom, 
+	//                 right  click (or hold 'D') to pan
+	controls = new THREE.TrackballControls( cameraRTT );	
+
+	//uniforms & attributes
+	uniforms = {
+		color: {
+			type: 'f', // a float
+			value: 1
+		}
+	};
+
+	//materials
+	var shaderMaterialRTT = new THREE.ShaderMaterial({
+		uniforms:     	uniforms,
+		vertexShader:   $('#vertexshader').text(),
+		fragmentShader: $('#fragment_shader_pass1').text()
+	});
+
+	var shaderMaterial = new THREE.ShaderMaterial({
+		uniforms:     	uniforms,
+		vertexShader:   $('#vertexshader').text(),
+		fragmentShader: $('#fragment_shader_screen').text()
+	});
+
+	//texture for quad
+	var plane = new THREE.PlaneGeometry( window.innerWidth, window.innerHeight );
+	quad = new THREE.Mesh( plane, material );
+	quad.position.z = -100;
+	sceneRTT.add( quad );
+   
+    	scene.add(mesh);
+
+	scene.add(camera);
+}
+
+	var frame = 0;
+
+	function animate()
+	{
+		renderer.render( scene, camera );
+
+		controls.update();
+
+		requestAnimationFrame( animate );
+	}
+
+	</script>
+</html>
