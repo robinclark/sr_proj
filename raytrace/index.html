@@ -167,8 +167,27 @@
 	sphere1.position.set(50, 50, -50);
 
 	// add the sphere and camera to the scene
-	scene.add(sphere1);
-	scene.add(sphere);
+	//scene.add(sphere1);
+	//scene.add(sphere);
+	
+	 var geom = new THREE.Geometry();
+    var v1 = new THREE.Vector3(100,100,0);
+    var v2 = new THREE.Vector3(-100,100,0);
+    var v3 = new THREE.Vector3(100,-100,0);
+    var v4 = new THREE.Vector3(-100,-100,0);
+
+    console.log(geom.vertices)
+    geom.vertices.push(new THREE.Vertex(v1));
+    geom.vertices.push(new THREE.Vertex(v2));
+    geom.vertices.push(new THREE.Vertex(v3));
+    geom.vertices.push(new THREE.Vertex(v4));
+
+    geom.faces.push( new THREE.Face4( 0, 1, 3,2) );
+    //geom.computeFaceNormals();
+    
+    var mesh= new THREE.Mesh( geom, shaderMaterial );
+    scene.add(mesh);
+
 	scene.add(camera);
 }
 
