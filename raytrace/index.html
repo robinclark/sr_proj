@@ -376,7 +376,8 @@
 
 				// Render full screen quad with generated texture
 
-				renderer.render( sceneScreen, cameraRTT );			
+				renderer.render( sceneScreen, cameraRTT );		
+				controls.update();	
 			}
 
 			function viewDirection(xLoc, yLoc, zLoc)
