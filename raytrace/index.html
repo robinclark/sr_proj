@@ -7,12 +7,12 @@
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		<style>
 			body {
-				color: #ffffff;
+				color: #101011;
 				font-family:Monospace;
 				font-size:13px;
 				text-align:center;
 				font-weight: bold;
-				background-color: #ffffff;
+				background-color: #101011;
 				margin: 0px;
 				overflow: hidden;
 			}
@@ -224,15 +224,14 @@
 			var uniforms, attributes, controls;
 			var plotPos;
 
-			var mouseX = 0, mouseY = 0;
-
-			var windowHalfX = window.innerWidth / 2;
-			var windowHalfY = window.innerHeight / 2;
-
 			var ratio = 1.6
+
+			var w = 3.2;
+			var h = 2;
+			var camOffset = 80;
 			
 			var wWidth = window.innerWidth;
-			var wHeight = window.innerHeight;
+			var wHeight = window.innerHeight;			
 
 			var rtTexture, material, quad;
 
@@ -243,16 +242,23 @@
 
 			function init() {
 
+				//alert(wWidth + ", " + wHeight);
+
 				container = document.getElementById( 'container' );
 				
 				//camera
-				cameraRTT = new THREE.OrthographicCamera( wWidth / - 2, wWidth / 2, wHeight  / 2, wHeight / - 2, -10000, 10000 );
-				cameraRTT.position.z = 100;
+				cameraRTT = new THREE.OrthographicCamera( w / - 2, w / 2, h  / 2, h / - 2, -10000, 10000 );
+				//cameraRTT = new THREE.OrthographicCamera( -1.6, 1.6, 1, -1, -10000, 10000 );
+				cameraRTT.position.z = 20;
 
 				
 				/*moving camera*/
-				camera = new THREE.OrthographicCamera( wWidth / - 2, wWidth / 2, wHeight  / 2, wHeight / - 2, -10000, 10000 );
-				camera.position.z = 20;
+				camera = new THREE.OrthographicCamera( w / - 2, w / 2, h  / 2, h / - 2, -10000, 10000 );
+				//camera.position.z = 20;
+				//camera = new THREE.OrthographicCamera( -1.6, 1.6, 1, -1, -10000, 10000 );
+				//camera.position.x = 0;
+				camera.position.y = 100;
+				camera.position.z = 100;
 				
 				//controls
 				controls = new THREE.TrackballControls( camera );	
@@ -262,7 +268,7 @@
 				sceneScreen = new THREE.Scene();
 
 				//txtre to render to
-				rtTexture = new THREE.WebGLRenderTarget( wWidth, wHeight, { minFilter: THREE.LinearFilter, magFilter: THREE.NearestFilter, format: THREE.RGBFormat } );
+				rtTexture = new THREE.WebGLRenderTarget( 512, 512, { minFilter: THREE.LinearFilter, magFilter: THREE.NearestFilter, format: THREE.RGBFormat } );
 				
 				uniforms = {
 					cameraPos: {
@@ -304,7 +310,7 @@
 					depthWrite: false
 				} );
 
-				var plane = new THREE.PlaneGeometry( wWidth, wHeight );
+				var plane = new THREE.PlaneGeometry( w, h);
 
 				quad = new THREE.Mesh( plane, material );
 				quad.position.z = 0;
@@ -315,7 +321,7 @@
 				sceneScreen.add( quad );
 
 				renderer = new THREE.WebGLRenderer();
-				renderer.setSize( wWidth, wHeight );
+				renderer.setSize( 640, 400 );
 				renderer.autoClear = false;
 
 				container.appendChild( renderer.domElement );
@@ -363,10 +369,10 @@
 				/*update attributes*/
 				//--update 4 corners
 				
-				cLeftT = viewDirection(camera.left, camera.top, 10);
-    				cLeftB = viewDirection(camera.left, camera.bottom, 10);
-    				cRightT= viewDirection(camera.right, camera.top, 10);
-    				cRightB = viewDirection(camera.right, camera.bottom, 10);				
+				cLeftT = viewDirection(camera.left, camera.top, camOffset);
+    				cLeftB = viewDirection(camera.left, camera.bottom, camOffset);
+    				cRightT= viewDirection(camera.right, camera.top, camOffset);
+    				cRightB = viewDirection(camera.right, camera.bottom, camOffset);				
 
 				cameraTopLeft = cLeftT;
     				cameraBotLeft = cRightT;
