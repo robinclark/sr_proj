@@ -358,7 +358,7 @@
 
 				/*update uniforms*/
 				
-				uniforms.cameraPos.value = [camera.position.x, camera.position.y, camera.position.z];
+				//uniforms.cameraPos.value = [camera.position.x, camera.position.y, camera.position.z];
    				uniforms.sphere1Center.value = [x1, y1, z1];
 				uniforms.sphere2Center.value = [x2, y2, z2];
 				uniforms.sphere3Center.value = [x3, y3, z3];
@@ -375,12 +375,99 @@
     				cRightB = viewDirection(camera.right, camera.bottom, camOffset);				
    		
 				//--pass values to aPlotPosition attribute
-				plotPos = attributes.aPlotPosition.value;
-	
-				plotPos.push(cLeftT);
+				plotPos = attributes.aPlotPosition.value;	
+				/*plotPos.push(cLeftT);
 				plotPos.push(cRightT);				
 				plotPos.push(cLeftB);				
-				plotPos.push(cRightB);
+				plotPos.push(cRightB);*/
+
+/*****************************************************************************/
+				/*cameraFrom = { x: Math.sin(t * 0.4) * 18,
+                  		y: Math.sin(t * 0.13) * 5 + 5,
+                   		z: Math.cos(t * 0.4) * 18 };
+
+    				cameraTo = { x:0, y:0, z:0 };
+
+    				cameraPersp = 6;
+
+    				up = { x: 0, y: 1, z: 0 };
+
+   				cameraDir = normalize(vectSub(cameraTo, cameraFrom));
+
+    				cameraLeft = normalize(crossProd(cameraDir, up));
+
+    				cameraUp = normalize(crossProd(cameraLeft, cameraDir));
+
+    				cameraCenter = vectAdd(cameraFrom, vectMul(cameraDir, cameraPersp));
+
+    				cameraTopLeft  = vectAdd(vectAdd(cameraCenter, cameraUp),
+    					                         vectMul(cameraLeft, ratio));
+    				cameraBotLeft  = vectAdd(vectSub(cameraCenter, cameraUp),
+                             				vectMul(cameraLeft, ratio));
+    				cameraTopRight = vectSub(vectAdd(cameraCenter, cameraUp),
+                             			vectMul(cameraLeft, ratio));
+    				cameraBotRight = vectSub(vectSub(cameraCenter, cameraUp),
+                             			vectMul(cameraLeft, ratio));*/
+				/*---------------------------------------------------------------------------*/
+				
+				var x, y, z;
+				x = Math.sin(t * 0.4) * 18;
+				y = Math.sin(t * 0.13) * 5 + 5;
+				z = Math.cos(t * 0.4) * 18;
+				var cameraFrom = new THREE.Vector3(x, y, z);	
+
+				uniforms.cameraPos.value = [cameraFrom.x, cameraFrom.y, cameraFrom.z];			
+				
+				var cameraTo = new THREE.Vector3(0,0,0);
+
+				var cameraPersp = 6;
+
+				var up = new THREE.Vector3(0,1,0);
+
+				var cameraDir = new THREE.Vector3();
+				cameraDir.subVectors(cameraTo, cameraFrom);
+				cameraDir.normalize();
+
+				var cameraLeft = new THREE.Vector3();
+				cameraLeft.crossVectors(cameraDir, up);
+				cameraLeft.normalize();
+
+				var cameraUp = new THREE.Vector3();
+				cameraUp.crossVectors(cameraLeft, cameraDir);
+				cameraUp.normalize();
+
+				var cameraCenter = new THREE.Vector3();
+				var temp = new THREE.Vector3();
+				temp.copy(cameraDir);				
+				temp.multiplyScalar(cameraPersp);				
+				cameraCenter.addVectors(cameraFrom, temp);
+				
+				var ta = new THREE.Vector3();
+				var ts = new THREE.Vector3();
+				var tm = new THREE.Vector3();
+				
+				ta.addVectors(cameraCenter, cameraUp);
+				ts.subVectors(cameraCenter, cameraUp);
+				tm.copy(cameraLeft);
+				tm.multiplyScalar(ratio);
+				
+				var cTL = new THREE.Vector3();				
+				var cBL = new THREE.Vector3();
+				var cTR = new THREE.Vector3();
+				var cBR = new THREE.Vector3();
+
+				cTL.addVectors(ta, tm);
+				cBL.addVectors(ts, tm);
+				cTR.subVectors(ta, tm);
+				cBR.subVectors(ts, tm);			
+				
+				/*--------------*/
+				plotPos.push(cTL);
+				plotPos.push(cTR);
+				plotPos.push(cBL);
+				plotPos.push(cBR);
+				/*--------------*/
+   				/*****************************************************************************/
 
 				renderer.clear();
 
