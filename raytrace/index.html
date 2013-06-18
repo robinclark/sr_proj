@@ -373,18 +373,14 @@
     				cLeftB = viewDirection(camera.left, camera.bottom, camOffset);
     				cRightT= viewDirection(camera.right, camera.top, camOffset);
     				cRightB = viewDirection(camera.right, camera.bottom, camOffset);				
-
-				cameraTopLeft = cLeftT;
-    				cameraBotLeft = cRightT;
-    				cameraTopRight= cLeftB;
-    				cameraBotRight= cRightB;
    		
 				//--pass values to aPlotPosition attribute
 				plotPos = attributes.aPlotPosition.value;
-				plotPos.push(cRightT);
+	
 				plotPos.push(cLeftT);
+				plotPos.push(cRightT);				
+				plotPos.push(cLeftB);				
 				plotPos.push(cRightB);
-				plotPos.push(cLeftB);						
 
 				renderer.clear();
 
