@@ -386,11 +386,12 @@
 
 				// Render first scene into texture
 
-				renderer.render( sceneRTT, cameraRTT, rtTexture, true );
-
+				//renderer.render( sceneRTT, cameraRTT, rtTexture, true );
+			
 				// Render full screen quad with generated texture
-
-				renderer.render( sceneScreen, cameraRTT );			
+				
+				renderer.setViewport( 0, 0, 640, 400 )
+				renderer.render( sceneRTT, cameraRTT );			
 			}
 
 			function viewDirection(xLoc, yLoc, zLoc)
