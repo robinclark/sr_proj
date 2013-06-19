@@ -222,7 +222,6 @@
 			var cameraRTT, sceneRTT, sceneScreen, renderer;
 
 			var uniforms, attributes, controls;
-			var plotPos;
 
 			var ratio = 1.6
 
@@ -362,9 +361,6 @@
    				uniforms.sphere1Center.value = [x1, y1, z1];
 				uniforms.sphere2Center.value = [x2, y2, z2];
 				uniforms.sphere3Center.value = [x3, y3, z3];
-
-				if(camera.position.x != 0)
-					console.log(camera.position);
 				
 				/*update attributes*/
 				//--update 4 corners
@@ -375,12 +371,12 @@
     				cRightB = viewDirection(camera.right, camera.bottom, camOffset);				
    		
 				//--pass values to aPlotPosition attribute
-				plotPos = attributes.aPlotPosition.value;
+				var plotPos = attributes.aPlotPosition.value;
 	
-				plotPos.push(cLeftT);
-				plotPos.push(cRightT);				
-				plotPos.push(cLeftB);				
-				plotPos.push(cRightB);
+				plotPos[0] = cLeftT;
+				plotPos[1] = cRightT;
+				plotPos[2] = cLeftB;
+				plotPos[3] = cRightB;
 
 				renderer.clear();
 
