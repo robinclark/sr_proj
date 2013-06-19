@@ -227,7 +227,7 @@
 
 			var w = 3.2;
 			var h = 2;
-			var camOffset = 20;
+			var camOffset = 10;
 			
 			var wWidth = window.innerWidth;
 			var wHeight = window.innerHeight;			
@@ -235,6 +235,8 @@
 			var rtTexture, material, quad;
 
 			var delta = 0.01;
+
+			var camWorld;
 
 			init();
 			animate();
@@ -340,6 +342,8 @@
 
 			var t = 0;
 			function render() {
+				camera.updateMatrixWorld();
+				camWorld = camera.matrixWorld;
 
 				var time = Date.now() * 0.0015;
 
@@ -378,6 +382,8 @@
 				plotPos[2] = cLeftB;
 				plotPos[3] = cRightB;
 
+				//console.log(plotPos[0]);
+
 				renderer.clear();
 
 				// Render first scene into texture
@@ -392,15 +398,15 @@
 
 			function viewDirection(xLoc, yLoc, zLoc)
 			{
-				camera.updateMatrix;
-				sceneRTT.updateMatrixWorld();
-				sceneScreen.updateMatrixWorld();
+				//camera.updateMatrix;
+				//sceneRTT.updateMatrixWorld();
+				//sceneScreen.updateMatrixWorld();
 
 				var pLocal = new THREE.Vector3(xLoc, yLoc, zLoc);				
 
-				var worldMat = cameraRTT.matrixWorld;
+				var worldMat = camera.matrixWorld;
 				var pWorld = pLocal.applyMatrix4(worldMat);
-				var dir = pWorld.sub( cameraRTT.position );
+				var dir = pWorld.sub( camera.position );
 
 				//console.log(dir);				
 
