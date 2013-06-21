@@ -53,6 +53,16 @@
   			uniform vec3 sphere2Center;
   			uniform vec3 sphere3Center;
 
+			struct Shape
+			{
+				int type;
+				/*vec3 position;				
+				vec3 color;
+				float size;*/
+			};
+
+			uniform Shape plane;
+
  			bool intersectSphere(vec3 center, vec3 lStart, vec3 lDir, out float dist)
 			{
     				vec3 c = center - lStart;
@@ -238,6 +248,8 @@
 
 			var camWorld;
 
+			var PLANE = 1, SPHERE = 0;
+
 			init();
 			animate();
 
@@ -272,6 +284,26 @@
 				rtTexture = new THREE.WebGLRenderTarget( 512, 512, { minFilter: THREE.LinearFilter, magFilter: THREE.NearestFilter, format: THREE.RGBFormat } );
 				
 				uniforms = {
+					
+					/**********************************************************/
+					"plane.type": {
+						type: 'i', // int
+						value: 1
+					},
+					"plane.position": {
+						type: 'fv', // vec3
+						value: [0, 0, 0]
+					},
+					"plane.color": {
+						type: 'fv', // vec3
+						value: [0, 0, 0]
+					},
+					"plane.size": {
+						type: 'f', // float
+						value: 2.0
+					},				
+					/**********************************************************/
+
 					cameraPos: {
 						type: 'fv', // vec3
 						value: [0, 0, 0]
