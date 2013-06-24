@@ -81,8 +81,14 @@
 				if(denom == 0.0) return false;
 				
 				float num = dot((p0 - l0), n);
-
 				dist = num/denom;
+
+				vec3 dP = p0 - (dist*l + l0);
+				float size = plane.size;
+				if(abs(dP.x) > size || abs(dP.y) > size)
+				{
+					return false;
+				}
 
     				return true;
 			}
@@ -133,8 +139,14 @@
 				vec3 pC = plane.position;
 				vec3 pN = plane.normal;
 				h4 = intersectPlane(pC, lStart, lDir, pN, d4);
-
-    				if (h1 && d1 < d2 && d1 < d3)
+				
+				if(h4 && d4 < d1 && d4 < d2 && d4 < d3)
+				{
+					pos = lStart + d4 * lDir;
+					normal = plane.normal;
+					color = plane.color;
+				}
+    				else if (h1 && d1 < d2 && d1 < d3)
 				{
       					pos = lStart + d1 * lDir;
       					normal = pos - sphere1Center;
@@ -315,11 +327,11 @@
 					},
 					"plane.position": {
 						type: 'fv', // vec3
-						value: [0, 0, 0]
+						value: [0, 0, -20]
 					},
 					"plane.color": {
 						type: 'fv', // vec3
-						value: [1, 0, 0]
+						value: [1, 1, 0]
 					},
 					"plane.size": {
 						type: 'f', // float
