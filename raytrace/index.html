@@ -7,12 +7,12 @@
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		<style>
 			body {
-				color: #101011;
+				color: #000000;
 				font-family:Monospace;
 				font-size:13px;
 				text-align:center;
 				font-weight: bold;
-				background-color: #101011;
+				background-color: #000000;
 				margin: 0px;
 				overflow: hidden;
 			}
@@ -351,18 +351,22 @@
 
 			var container, stats;
 
-			var cameraRTT, sceneRTT, sceneScreen, renderer;
+			var cameraRTT, sceneRTT, sceneScreen, renderer, scene;
 
 			var uniforms, attributes, controls;
 
 			var ratio = 1.6
 
-			var w = 3.2;
-			var h = 2;
+			/*var w = 3.2;
+			var h = 2;*/
+			
 			var camOffset = 17;
 			
 			var wWidth = window.innerWidth;
 			var wHeight = window.innerHeight;			
+			
+			var w = 1000;
+			var h = 1000;
 
 			var rtTexture, material, quad;
 
@@ -389,7 +393,7 @@
 				/*moving camera*/
 				camera = new THREE.OrthographicCamera( w / - 2, w / 2, h  / 2, h / - 2, -10000, 10000 );
 				camera.position.y = 5;
-				camera.position.z = 20;
+				camera.position.z = 50;
 				
 				//controls
 				controls = new THREE.TrackballControls( camera );
@@ -410,6 +414,42 @@
 				sceneRTT = new THREE.Scene();
 				sceneScreen = new THREE.Scene();
 
+				/*----------------------------------------------------------------*/
+				scene = new THREE.Scene();				
+
+				var geometry = new THREE.CylinderGeometry( 0, 10, 30, 4, 1 );
+				var material =  new THREE.MeshLambertMaterial( { color:0xffffff, shading: THREE.FlatShading } );
+				
+				var mesh = new THREE.Mesh( geometry, material );
+				mesh.position.x = -5;
+				mesh.position.y = 0;
+				mesh.position.z = 0;
+				//mesh.updateMatrix();
+				//mesh.matrixAutoUpdate = false;
+				scene.add( mesh );
+
+				var mesh = new THREE.Mesh( geometry, material );
+				mesh.position.x = 5;
+				mesh.position.y = 0;
+				mesh.position.z = 0;
+				//mesh.updateMatrix();
+				//mesh.matrixAutoUpdate = false;
+				scene.add( mesh );
+
+				// lights
+
+				light = new THREE.DirectionalLight( 0xffffff );
+				light.position.set( 1, 1, 1 );
+				scene.add( light );
+
+				light = new THREE.DirectionalLight( 0x002288 );
+				light.position.set( -1, -1, -1 );
+				scene.add( light );
+
+				light = new THREE.AmbientLight( 0x222222 );
+				scene.add( light );
+
+				/*----------------------------------------------------------------*/
 				//txtre to render to
 				rtTexture = new THREE.WebGLRenderTarget( 512, 512, { minFilter: THREE.LinearFilter, magFilter: THREE.NearestFilter, format: THREE.RGBFormat } );
 				
@@ -595,8 +635,9 @@
 			
 				// Render full screen quad with generated texture
 				//sceneRTT.add(camera);
-				renderer.setViewport( 0, 0, 640, 400 )
-				renderer.render( sceneRTT, cameraRTT );			
+				//renderer.setViewport( 0, 0, 640, 400 )
+				//renderer.render( sceneRTT, cameraRTT );		
+				renderer.render(scene, camera);	
 			}
 
 			function worldTransform(xLoc, yLoc, zLoc)
