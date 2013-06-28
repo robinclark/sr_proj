@@ -392,7 +392,19 @@
 				camera.position.z = 20;
 				
 				//controls
-				controls = new THREE.TrackballControls( camera );	
+				controls = new THREE.TrackballControls( camera );
+
+				controls.rotateSpeed = 1.0;
+				controls.zoomSpeed = 1.2;
+				controls.panSpeed = 0.8;
+
+				controls.noZoom = false;
+				controls.noPan = false;
+
+				controls.staticMoving = true;
+				controls.dynamicDampingFactor = 0.3;
+
+				controls.addEventListener( 'change', render );	
 
 				//scenes
 				sceneRTT = new THREE.Scene();
@@ -510,6 +522,7 @@
 
 			var t = 0;
 			function render() {
+				camera.lookAt(new THREE.Vector3(0,0,0));
 				camera.updateMatrixWorld();
 				camWorld = camera.matrixWorld;
 
@@ -530,9 +543,13 @@
 				/*update uniforms*/
 				
 				uniforms.cameraPos.value = [camera.position.x, camera.position.y, camera.position.z];
-   				uniforms.sphere1Center.value = [x1, y1, z1];
-				uniforms.sphere2Center.value = [x2, y2, z2];
-				uniforms.sphere3Center.value = [x3, y3, z3];
+				var a = worldTransform(x1, y1, z1);
+				var b = worldTransform(x2, y2, z2);
+				var c = worldTransform(x3, y3, z3);
+
+   				uniforms.sphere1Center.value = [a.x, a.y, a.z];
+				uniforms.sphere2Center.value = [b.x, b.y, b.z];
+				uniforms.sphere3Center.value = [c.x, c.y, c.z];
 
 				/*triangle*/
 				uniforms["t.coords[1]"].value = [-(camera.position.x-0.5), -(camera.position.y-3.0), camera.position.z-15.0];	
@@ -546,7 +563,19 @@
 				cLeftT = viewDirection(camera.left, camera.top, camOffset);
     				cLeftB = viewDirection(camera.left, camera.bottom, camOffset);
     				cRightT= viewDirection(camera.right, camera.top, camOffset);
-    				cRightB = viewDirection(camera.right, camera.bottom, camOffset);				
+    				cRightB = viewDirection(camera.right, camera.bottom, camOffset);
+
+				//calc corners
+				//dir fr cam to center
+				var origin = new THREE.Vector3(0,0,0);
+				var lookDir = new THREE.Vector3();
+				lookDir.subVectors(camera.position, origin);	
+
+				var offset = 10;
+				var rat = 1.6
+	
+				//var uL = 
+							
    		
 				//--pass values to aPlotPosition attribute
 				var plotPos = attributes.aPlotPosition.value;
@@ -565,9 +594,17 @@
 				//renderer.render( sceneRTT, cameraRTT, rtTexture, true );
 			
 				// Render full screen quad with generated texture
-				
+				//sceneRTT.add(camera);
 				renderer.setViewport( 0, 0, 640, 400 )
 				renderer.render( sceneRTT, cameraRTT );			
+			}
+
+			function worldTransform(xLoc, yLoc, zLoc)
+			{
+				var pLocal = new THREE.Vector3(xLoc, yLoc, zLoc);
+				var worldMat = camera.matrixWorld;
+				var pWorld = pLocal.applyMatrix4(worldMat);
+				return pWorld;
 			}
 
 			function viewDirection(xLoc, yLoc, zLoc)
