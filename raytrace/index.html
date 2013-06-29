@@ -360,7 +360,7 @@
 			var w = 3.2;
 			var h = 2;
 			
-			var camOffset = 17;
+			var camOffset = -5;
 			
 			var wWidth = window.innerWidth;
 			var wHeight = window.innerHeight;			
@@ -591,13 +591,13 @@
 				var b = viewTransform(x2, y2, z2);
 				var c = viewTransform(x3, y3, z3);
 
-   				uniforms.sphere1Center.value = [a.x, a.y, a.z];
+   				/*uniforms.sphere1Center.value = [a.x, a.y, a.z];
 				uniforms.sphere2Center.value = [b.x, b.y, b.z];
-				uniforms.sphere3Center.value = [c.x, c.y, c.z];
+				uniforms.sphere3Center.value = [c.x, c.y, c.z];*/
 
-				/*uniforms.sphere1Center.value = [x1, y1, z1];
+				uniforms.sphere1Center.value = [x1, y1, z1];
 				uniforms.sphere2Center.value = [x2, y2, z2];
-				uniforms.sphere3Center.value = [x3, y3, z3];*/
+				uniforms.sphere3Center.value = [x3, y3, z3];
 
 				/*triangle*/
 				uniforms["t.coords[1]"].value = [-(camera.position.x-0.5), -(camera.position.y-3.0), camera.position.z-15.0];	
@@ -612,6 +612,11 @@
     				cLeftB = viewDirection(camera.left, camera.bottom, camOffset);
     				cRightT= viewDirection(camera.right, camera.top, camOffset);
     				cRightB = viewDirection(camera.right, camera.bottom, camOffset);
+
+				cLeftT.add(camera.position);
+				cLeftB.add(camera.position);
+				cRightT.add(camera.position);
+				cRightB.add(camera.position);
 
 				dUL = cLeftT.distanceTo(camera.position);
 				dUR = cRightT.distanceTo(camera.position);
