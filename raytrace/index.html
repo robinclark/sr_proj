@@ -351,7 +351,7 @@
 
 			var container, stats;
 
-			var cameraRTT, sceneRTT, sceneScreen, renderer, scene;
+			var cameraRTT, sceneRTT, sceneScreen, renderer, scene, camera;
 
 			var uniforms, attributes, controls;
 
@@ -364,15 +364,10 @@
 			
 			var wWidth = window.innerWidth;
 			var wHeight = window.innerHeight;			
-			
-			/*var w = 1000;
-			var h = 1000;*/
 
 			var rtTexture, material, quad;
 
 			var delta = 0.01;
-
-			var camWorld;
 
 			var PLANE = 1, SPHERE = 0;
 
@@ -380,12 +375,30 @@
 	
 			var dUL, dUR, dBL, dBR;
 
+			var uL, bL, uR, bR;
+			
+			var camC, camD, center;
+			var camLeft, camRight, camDown;
+
+			var lookDir; 
+
 			init();
 			animate();
 
 			function init() {
 
 				//alert(wWidth + ", " + wHeight);
+
+				lookDir = new THREE.Vector3();
+				camLeft = new THREE.Vector3();
+				camRight = new THREE.Vector3();
+				camDown = new THREE.Vector3();
+				uL = new THREE.Vector3();
+				bL = new THREE.Vector3();
+				uR = new THREE.Vector3();
+				bR = new THREE.Vector3();
+			
+				center = new THREE.Vector3(0,0,0);
 
 				container = document.getElementById( 'container' );
 				
@@ -396,7 +409,8 @@
 				
 				/*moving camera*/
 				camera = new THREE.OrthographicCamera( w / - 2, w / 2, h  / 2, h / - 2, -10000, 10000 );
-				camera.position.y = 5;
+				//camera = new THREE.PerspectiveCamera( 90, 1000 / 1000, -10000, 10000 );
+				//camera.position.y = 5;
 				camera.position.z = 20;
 				
 				//controls
@@ -566,9 +580,10 @@
 
 			var t = 0;
 			function render() {
-				camera.lookAt(new THREE.Vector3(0,0,0));
 				camera.updateMatrixWorld();
-				camWorld = camera.matrixWorld;
+				camera.matrixWorldInverse.getInverse(camera.matrixWorld);			
+
+				camD = center.distanceTo(camera.position);
 
 				var time = Date.now() * 0.0015;
 
@@ -587,11 +602,11 @@
 				/*update uniforms*/
 				
 				uniforms.cameraPos.value = [camera.position.x, camera.position.y, camera.position.z];
-				var a = viewTransform(x1, y1, z1);
+				/*var a = viewTransform(x1, y1, z1);
 				var b = viewTransform(x2, y2, z2);
 				var c = viewTransform(x3, y3, z3);
 
-   				/*uniforms.sphere1Center.value = [a.x, a.y, a.z];
+   				uniforms.sphere1Center.value = [a.x, a.y, a.z];
 				uniforms.sphere2Center.value = [b.x, b.y, b.z];
 				uniforms.sphere3Center.value = [c.x, c.y, c.z];*/
 
@@ -600,6 +615,9 @@
 				uniforms.sphere3Center.value = [x3, y3, z3];
 
 				/*triangle*/
+				camC = viewDirection(0, 0, -20);
+				camC.add(camera.position);
+				uniforms["t.coords[0]"].value = [camC.x, camC.y, camC.z];
 				uniforms["t.coords[1]"].value = [-(camera.position.x-0.5), -(camera.position.y-3.0), camera.position.z-15.0];	
 				uniforms["t.coords[2]"].value = [-(camera.position.x+0.5), -(camera.position.y-3.0), camera.position.z-15.0];
 
@@ -624,16 +642,45 @@
 				dBR = cRightB.distanceTo(camera.position);
 
 				//calc corners
+				camera.up.normalize();
+
 				//dir fr cam to center
 				var origin = new THREE.Vector3(0,0,0);
-				var lookDir = new THREE.Vector3();
-				lookDir.subVectors(camera.position, origin);	
+				lookDir.subVectors(origin, camera.position);
+				lookDir.normalize();	
 
-				var offset = 10;
+				var offset = 5;
 				var rat = 1.6
-	
-				//var uL = 
-							
+				camRight.crossVectors(lookDir, camera.up);
+				camLeft.normalize();
+
+				camLeft.copy(camRight);
+				camLeft.multiplyScalar(-1);
+
+				camDown.copy(camera.up);
+				camDown.multiplyScalar(-1);
+
+				lookDir.multiplyScalar(offset);
+
+				camLeft.multiplyScalar(1.6);
+				camRight.multiplyScalar(1.6);
+				
+				uL.addVectors(lookDir, camera.up);
+				uL.add(camLeft);
+				uL.add(camera.position);
+
+				uR.addVectors(lookDir, camera.up);
+				uR.add(camRight);
+				uR.add(camera.position);
+
+				bL.addVectors(lookDir, camDown);
+				bL.add(camLeft);
+				bL.add(camera.position);
+				
+				bR.addVectors(lookDir, camDown);
+				bR.add(camRight);	
+				bR.add(camera.position);
+						
    		
 				//--pass values to aPlotPosition attribute
 				var plotPos = attributes.aPlotPosition.value;
@@ -652,14 +699,14 @@
 				//renderer.render( sceneRTT, cameraRTT, rtTexture, true );
 			
 				// Render full screen quad with generated texture
-				//sceneRTT.add(camera);
-				//renderer.setViewport( 0, 0, 640, 400 )
+
 				renderer.render( sceneRTT, cameraRTT );		
 				//renderer.render(scene, camera);	
 			}
 
 			function viewTransform(xLoc, yLoc, zLoc)
 			{
+				camera.updateMatrixWorld();
 				var pLocal = new THREE.Vector3(xLoc, yLoc, zLoc);
 				var worldMatInverse = camera.matrixWorldInverse;
 				var pWorld = pLocal.applyMatrix4(worldMatInverse);
@@ -668,8 +715,8 @@
 
 			function viewDirection(xLoc, yLoc, zLoc)
 			{
-				var pLocal = new THREE.Vector3(xLoc, yLoc, zLoc);				
-
+				camera.updateMatrixWorld();
+				var pLocal = new THREE.Vector3(xLoc, yLoc, zLoc);	
 				var worldMat = camera.matrixWorld;
 				var pWorld = pLocal.applyMatrix4(worldMat);
 				var dir = pWorld.sub( camera.position );			
