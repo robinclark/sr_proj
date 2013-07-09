@@ -381,31 +381,31 @@
 			var camLeft, camRight, camDown;
 
 			var lookDir; 
+			var camP;
+			var camUp;
+			var x, y, z;
+			var x1, y1, z1;
+			var origin;
+			var up;
+			var s1;
+			var pos;
 
 			init();
 			animate();
 
 			function init() {
-container = document.getElementById( 'container' );
+				container = document.getElementById( 'container' );
 				renderer = new THREE.WebGLRenderer();
 				renderer.setSize( 640, 400 );
 				renderer.autoClear = false;
 
 				container.appendChild( renderer.domElement );
 
-				lookDir = new THREE.Vector3();
-				camLeft = new THREE.Vector3();
-				camRight = new THREE.Vector3();
-				camDown = new THREE.Vector3();
-				uL = new THREE.Vector3();
-				bL = new THREE.Vector3();
-				uR = new THREE.Vector3();
-				bR = new THREE.Vector3();
-				camC = new THREE.Vector3();
-			
-				center = new THREE.Vector3(0,0,0);
-
-				
+				lookDir = {x: 0, y: 0, z: 0};
+				camUp = {x: 0, y: 1, z: 0};
+				camP = {x: 0, y: 0, z: 20};
+				origin = {x: 0, y: 0, z: 0};			
+				center = {x: 0, y: 0, z: 0};
 				
 				//camera
 				cameraRTT = new THREE.OrthographicCamera( w / - 2, w / 2, h  / 2, h / - 2, -10000, 10000 );
@@ -416,6 +416,7 @@ container = document.getElementById( 'container' );
 				camera = new THREE.OrthographicCamera( w / - 2, w / 2, h  / 2, h / - 2, -10000, 10000 );
 				//camera = new THREE.PerspectiveCamera( 90, 1000 / 1000, -10000, 10000 );
 				//camera.position.y = 5;
+				//camera.position.x = 5;
 				camera.position.z = 20;
 				
 				//controls
@@ -503,7 +504,7 @@ container = document.getElementById( 'container' );
 					},
 					/**********************************************************/
 					//--triangle
-					"t.coords[0]": {
+					/*"t.coords[0]": {
 						type: 'fv', // vec3
 						value: [0, 0, 0]
 					},
@@ -514,7 +515,7 @@ container = document.getElementById( 'container' );
 					"t.coords[2]": {
 						type: 'fv', // vec3
 						value: [2, -1, 0]
-					},			
+					},			*/
 					/**********************************************************/
 					cameraPos: {
 						type: 'fv', // vec3
@@ -573,6 +574,7 @@ container = document.getElementById( 'container' );
 			}
 
 			function animate() {
+
 				requestAnimationFrame( animate );
 				stats.update();
 				controls.update();
@@ -583,8 +585,6 @@ container = document.getElementById( 'container' );
 			function render() {
 				camera.updateMatrixWorld();
 				camera.matrixWorldInverse.getInverse(camera.matrixWorld);			
-
-				camD = center.distanceTo(camera.position);
 
 				var time = Date.now() * 0.0015;
 
@@ -599,23 +599,37 @@ container = document.getElementById( 'container' );
     				y3 = Math.sin(t * 1.37) * 1.5;
     				z3 = Math.sin(t*1.27) * 1.5;
 
-				/*update uniforms*/				
-				uniforms.cameraPos.value = [camera.position.x, camera.position.y, camera.position.z];
-				uniforms.sphere1Center.value = [x1, y1, z1];
-				uniforms.sphere2Center.value = [x2, y2, z2];
-				uniforms.sphere3Center.value = [x3, y3, z3];
+				s1 = { x: Math.sin(t * 1.1) * 1.5,
+				       y: Math.cos(t * 1.3) * 1.5,
+				       z: Math.sin(t + Math.PI/3) * 1.5
+				};
 
-				/*triangle*/
-				var origin = new THREE.Vector3(0,0,0);
-				lookDir.subVectors(origin, camera.position);
-				lookDir.normalize();	
+				/*update uniforms*/
+				
+				//----why doesnt this work makes no sense
+				/*x = Math.sin(t * 0.4) * 18;
+				 y = Math.sin(t * 0.13) * 5 + 5;
+				 z = Math.cos(t * 0.4) * 18;*/
 
-				camC.copy(lookDir);
+				s = { x: Math.sin(t * 0.4) * 18,
+				      y: Math.sin(t * 0.13) * 5 + 5,
+				      z: Math.cos(t * 0.4) * 18,
+				    }
+
+				//uniforms.cameraPos.value = [camP.x, camP.y, camP.z];
+				s1.x = 1 + Math.sin(t);
+	
+				//uniforms.sphere1Center.value = [s1.x, s1.y, s1.z];
+				//uniforms.sphere2Center.value = [s1.x, s1.y, s1.z];
+				//uniforms.sphere3Center.value = [s1.x, s1.y, s1.z];
+				/*triangle*/	
+
+				/*camC.copy(lookDir);
 				camC.multiplyScalar(20);
 				camC.add(camera.position);
 				uniforms["t.coords[0]"].value = [camC.x, camC.y, camC.z];
 				uniforms["t.coords[1]"].value = [-(camera.position.x-0.5), (camera.position.y-1.0), camera.position.z-15.0];	
-				uniforms["t.coords[2]"].value = [-(camera.position.x+0.5), (camera.position.y-1.0), camera.position.z-15.0];
+				uniforms["t.coords[2]"].value = [-(camera.position.x+0.5), (camera.position.y-1.0), camera.position.z-15.0];*/
 
 				/*update attributes*/
 				//--update 4 corners
@@ -636,15 +650,20 @@ container = document.getElementById( 'container' );
 				dBR = cRightB.distanceTo(camera.position);
 
 				//--calc corners
-				camera.up.normalize();
+				/*lookDir.subVectors(origin, camP);
+				lookDir.normalize();
+
 				var offset = 5;
-				camRight.crossVectors(lookDir, camera.up);
-				camLeft.normalize();
+				camRight.crossVectors(lookDir, camUp);
+				camRight.normalize();
+
+				camUp.crossVectors(camRight, lookDir);
+				camUp.normalize();
 
 				camLeft.copy(camRight);
 				camLeft.multiplyScalar(-1);
 
-				camDown.copy(camera.up);
+				camDown.copy(camUp);
 				camDown.multiplyScalar(-1);
 
 				lookDir.multiplyScalar(offset);
@@ -652,29 +671,62 @@ container = document.getElementById( 'container' );
 				camLeft.multiplyScalar(1.6);
 				camRight.multiplyScalar(1.6);
 				
-				uL.addVectors(lookDir, camera.up);
+				uL.addVectors(lookDir, camUp);
 				uL.add(camLeft);
-				uL.add(camera.position);
+				uL.add(camP);
 
 				uR.addVectors(lookDir, camera.up);
 				uR.add(camRight);
-				uR.add(camera.position);
+				uR.add(camP);
 
 				bL.addVectors(lookDir, camDown);
 				bL.add(camLeft);
-				bL.add(camera.position);
+				bL.add(camP);
 				
 				bR.addVectors(lookDir, camDown);
 				bR.add(camRight);	
-				bR.add(camera.position);						
-   		
+				bR.add(camP);*/
+		
+				//camP.x = 5*Math.sin(t);
+				//camP.y = camera.position.y;
+				//camP.z = camera.position.z;
+				
+				/*camP = { x: Math.sin(t * 0.4) * 18,
+                   		y: Math.sin(t * 0.13) * 5 + 5,
+                   		z: Math.cos(t * 0.4) * 18 };*/
+
+				x = 2;				
+				y = 5;
+				z = 20;
+				pos = viewDirection(0, 0, 0);
+				camP.x = 2;
+				camP.y = 1;
+
+				
+				uniforms.cameraPos.value = [camP.x, camP.y, camP.z];
+			
+				var offset = 6;
+				lookDir = normalize(vectSub(origin, camP));
+				camRight = normalize(crossProd(lookDir, camUp));
+				up = normalize(crossProd(camRight, lookDir));
+				center = vectAdd(camP, vectMul(lookDir, offset));
+				uR = vectAdd(vectAdd(center, up), vectMul(camRight, ratio));
+				bR = vectAdd(vectSub(center, up), vectMul(camRight, ratio));
+				uL = vectSub(vectAdd(center, up), vectMul(camRight, ratio));
+				bL = vectSub(vectSub(center, up), vectMul(camRight, ratio));
+				
 				//--pass values to aPlotPosition attribute
 				var plotPos = attributes.aPlotPosition.value;
 	
-				plotPos[0] = cLeftT;
+				/*plotPos[0] = cLeftT;
 				plotPos[1] = cRightT;
 				plotPos[2] = cLeftB;
-				plotPos[3] = cRightB;
+				plotPos[3] = cRightB;*/
+
+				plotPos[0] = uL;
+				plotPos[1] = uR;
+				plotPos[2] = bL;
+				plotPos[3] = bR;
 
 				renderer.clear();
 
@@ -684,8 +736,14 @@ container = document.getElementById( 'container' );
 			
 				// Render full screen quad with generated texture
 
-				//renderer.render( sceneRTT, cameraRTT );		
-				renderer.render(scene, camera);	
+				renderer.render( sceneRTT, cameraRTT );		
+				//renderer.render(scene, camera);	   	
+
+				t += 0.03;
+    				if (t > Math.PI * 200) {
+      					t -= Math.PI * 200;
+   				}
+
 			}
 
 			function viewDirection(xLoc, yLoc, zLoc)
@@ -698,6 +756,29 @@ container = document.getElementById( 'container' );
 
 				return dir;
 			}
+
+			function crossProd(v1, v2) {
+    				return {x: v1.y*v2.z - v2.y*v1.z,
+            			 y: v1.z*v2.x - v2.z*v1.x,
+             			z: v1.x*v2.y - v2.x*v1.y };
+  			}
+
+  			function normalize(v) {
+   			l = Math.sqrt(v.x*v.x + v.y*v.y + v.z*v.z);
+    return { x: v.x/l, y: v.y/l, z: v.z/l };
+  }
+
+  function vectAdd(v1, v2) {
+    return { x: v1.x + v2.x, y: v1.y + v2.y, z: v1.z + v2.z };
+  }
+
+  function vectSub(v1, v2) {
+    return { x: v1.x - v2.x, y: v1.y - v2.y, z: v1.z - v2.z };
+  }
+
+  function vectMul(v, l) {
+    return { x: v.x*l, y: v.y*l, z: v.z*l };
+  }
 
 		</script>
 	</body>
