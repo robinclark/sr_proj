@@ -694,12 +694,9 @@
 				/*camP = { x: Math.sin(t * 0.4) * 18,
                    		y: Math.sin(t * 0.13) * 5 + 5,
                    		z: Math.cos(t * 0.4) * 18 };*/
-
-				x = 2;				
-
-				var v = camera.position.x;				
-				camP.x = v;
-				camP.y = 5;
+								
+				camP.x = camera.position.x;
+				camP.y =camera.position.y;
 
 				
 				uniforms.cameraPos.value = [camP.x, camP.y, camP.z];
