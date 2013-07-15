@@ -44,6 +44,8 @@
 		<script id="fragment_shader_texture" type="x-shader/x-fragment">
 			precision mediump float;
 
+			//bool intersectTriangle(vec3 v[3], vec3 lStart, vec3 lDir, vec3 n, out float dist);
+
   			const vec3 lightDir = vec3(0.577350269, 0.577350269, -0.577350269);
 
 			varying vec3 vPosition;
@@ -52,6 +54,36 @@
   			uniform vec3 sphere1Center;
   			uniform vec3 sphere2Center;
   			uniform vec3 sphere3Center;
+
+			struct Cube
+			{
+				vec3 v[8];
+				vec3 n[6];
+				vec3 c[6];
+			};
+
+			Cube cube1;
+
+			bool intersectCube(Cube c, vec3 lStart, vec3 lDir, out float dist)
+			{
+				//check for intersect at each cube face
+				//vec3 t1[3] = vec3[](	
+				//		vec3(1.0, 1.0, 1.0), 
+				//		vec3(1.0, 1.0, 1.0), 
+				//		vec3(1.0, 1.0, 1.0)
+				//	     );
+				
+				/*vec3 t1[8];
+				for(int i = 0; i < 8; i++)
+				{
+					t
+				}*/
+			
+				//intersectTriangle(
+				
+
+				return true;
+			}
 
 			struct Shape
 			{
@@ -76,34 +108,13 @@
 				vec3 a = t.coords[0] - t.coords[1];
 				vec3 b = t.coords[2] - t.coords[1];
 				vec3 r = normalize(cross(a,b));
-				//r.z = abs(r.z);
+				
 				return r;
 			}
 
-			bool intersectTriangle(Triangle t, vec3 lStart, vec3 lDir, vec3 n, out float dist)
+			bool intersectTriangle(vec3 v[3], vec3 lStart, vec3 lDir, vec3 n, out float dist)
 			{
-				/*float p[] = VecMath.scale(r.dir, t);		
-				float v0[] = VecMath.getVec(p0, p2);
-				float v1[] = VecMath.getVec(p0, p1);
-				float v2[] = VecMath.getVec(p0, p);
-		
-				float dot00 = VecMath.dot(v0, v0);
-				float dot01 = VecMath.dot(v0, v1);
-				float dot02 = VecMath.dot(v0, v2);
-				float dot11 = VecMath.dot(v1, v1);
-				float dot12 = VecMath.dot(v1, v2);
-		
-				float denomInv = 1/(dot00 * dot11 - dot01 * dot01);
-				float u = (dot11 * dot02 - dot01 * dot12) * denomInv;
-				float v = (dot00 * dot12 - dot01 * dot02) * denomInv;
-		
-				if(u >= 0 && v >= 0 && (u+v) < 1)//point within triangle
-					return t;		
-				else
-					return Float.MAX_VALUE;
-				*/
-
-				//ray dir
+				/*//ray dir
 				vec3 l = lDir;
 				
 				//ray origin
@@ -118,13 +129,13 @@
 					return false;
 				}
 				
-				float num = dot((t.coords[0] - l0), n);
+				float num = dot((v[0] - l0), n);
 				dist = num/denom;
 
 				vec3 p = l0+l*dist;
-				vec3 v0 = t.coords[2]-t.coords[0];
-				vec3 v1 = t.coords[1]-t.coords[0];
-				vec3 v2 = p-t.coords[0];
+				vec3 v0 = v[2]-v[0];
+				vec3 v1 = v[1]-v[0];
+				vec3 v2 = p-v[0];
 
 				float dot00 = dot(v0, v0);
 				float dot01 = dot(v0, v1);
@@ -136,10 +147,10 @@
 				float u = (dot11 * dot02 - dot01 * dot12) * dnomInv;
 				float v = (dot00 * dot12 - dot01 * dot02) * dnomInv;
 
-				if(u >= 0.0 && v >= 0.0 && (u+v) < 1.0)//point within triangle
+				if(u >= 0.0 && v >= 0.0 && (u+v) < 1.0) //point within triangle
 				{
 					return true;
-				}
+				}*/
 
 				return false;							
 			}
@@ -172,6 +183,8 @@
 
     				return true;
 			}
+
+			
 
  			bool intersectSphere(vec3 center, vec3 lStart, vec3 lDir, out float dist)
 			{
@@ -220,7 +233,7 @@
 				vec3 pN = plane.normal;
 				//h4 = intersectPlane(pC, lStart, lDir, pN, d4);
 				
-				vec3 triN = getTriNormal(t);
+				/*vec3 triN = getTriNormal(t);
 				h4 = intersectTriangle(t, lStart, lDir, triN, d4);
 
 				if(h4 && d4 < d1 && d4 < d2 && d4 < d3)
@@ -229,7 +242,7 @@
 					normal = triN;
 					color = plane.color;
 				}
-    				else if (h1 && d1 < d2 && d1 < d3)
+    				else*/ if (h1 && d1 < d2 && d1 < d3)
 				{
       					pos = lStart + d1 * lDir;
       					normal = pos - sphere1Center;
@@ -390,11 +403,29 @@
 			var s1;
 			var pos;
 
+			var cubeVtx;
+			var cubeMat;
+			var cubeCol;
+			var cubeNorm;
+
+			var mouseDown = false;
+   			var lastMouseX = null;
+    			var lastMouseY = null;
+			var camRotationMatrix;
+			var rotX;
+			var rotY;
+			//var newRotationMatrix;
+			var cPos;
+
 			init();
 			animate();
 
 			function init() {
 				container = document.getElementById( 'container' );
+				container.onmousedown = handleMouseDown;
+        			container.onmouseup = handleMouseUp;
+        			document.onmousemove = handleMouseMove;
+
 				renderer = new THREE.WebGLRenderer();
 				renderer.setSize( 640, 400 );
 				renderer.autoClear = false;
@@ -407,6 +438,16 @@
 				origin = {x: 0, y: 0, z: 0};			
 				center = {x: 0, y: 0, z: 0};
 				
+				//cube info
+				cubeVtx = [[1, 1, -1], [-1, 1, -1], [1, 1, 1], [-1, 1, 1], [1, -1, -1], [-1, -1, -1], [1, -1, 1], [1, -1, 1]];
+				cubeCol = [[1, 0, 0], [1, 0, 0], [1, 0, 0], [1, 0, 0], [1, 0, 0], [1, 0, 0]];
+				cubeNorm = [[0, 1, 0], [0, -1, 0], [-1, 0, 0], [0, 0, -1], [1, 0, 0], [0, 0, 1]];
+				cubeMat = new THREE.Matrix4();
+
+				//mouse movement
+				camRotationMatrix = new THREE.Matrix4();
+				cPos = new THREE.Vector3(camP.x, camP.y, camP.z);
+				
 				//camera
 				cameraRTT = new THREE.OrthographicCamera( w / - 2, w / 2, h  / 2, h / - 2, -10000, 10000 );
 				cameraRTT.position.z = 20;
@@ -414,15 +455,12 @@
 				
 				/*moving camera*/
 				camera = new THREE.OrthographicCamera( w / - 2, w / 2, h  / 2, h / - 2, -10000, 10000 );
-				//camera = new THREE.PerspectiveCamera( 90, 1000 / 1000, -10000, 10000 );
-				//camera.position.y = 5;
-				//camera.position.x = 5;
 				camera.position.z = 20;
 				
 				//controls
-				controls = new THREE.TrackballControls( camera, renderer.domElement );
+				//controls = new THREE.TrackballControls( camera, renderer.domElement );
 
-				controls.rotateSpeed = 1.0;
+				/*controls.rotateSpeed = 1.0;
 				controls.zoomSpeed = 1.2;
 				controls.panSpeed = 0.8;
 
@@ -432,49 +470,12 @@
 				controls.staticMoving = true;
 				controls.dynamicDampingFactor = 0.3;
 
-				controls.addEventListener( 'change', render );	
+				controls.addEventListener( 'change', render );	*/
 
 				//scenes
 				sceneRTT = new THREE.Scene();
 				sceneScreen = new THREE.Scene();
 
-				/*----------------------------------------------------------------*/
-				//--pyramid scene
-				scene = new THREE.Scene();				
-
-				var geometry = new THREE.CylinderGeometry( 0, 1, 1, 4, 1 );
-				var material =  new THREE.MeshLambertMaterial( { color:0xffffff, shading: THREE.FlatShading } );
-				
-				mesh1 = new THREE.Mesh( geometry, material );
-				mesh1.position.x = -1;
-				mesh1.position.y = 0;
-				mesh1.position.z = 0;
-				//mesh.updateMatrix();
-				//mesh.matrixAutoUpdate = false;
-				scene.add( mesh1 );
-
-				mesh2 = new THREE.Mesh( geometry, material );
-				mesh2.position.x = 1;
-				mesh2.position.y = 0;
-				mesh2.position.z = 0;
-				//mesh.updateMatrix();
-				//mesh.matrixAutoUpdate = false;
-				scene.add( mesh2 );
-
-				// lights
-
-				light = new THREE.DirectionalLight( 0xffffff );
-				light.position.set( 1, 1, 1 );
-				scene.add( light );
-
-				light = new THREE.DirectionalLight( 0x002288 );
-				light.position.set( -1, -1, -1 );
-				scene.add( light );
-
-				light = new THREE.AmbientLight( 0x222222 );
-				scene.add( light );
-
-				/*----------------------------------------------------------------*/
 				//txtre to render to
 				rtTexture = new THREE.WebGLRenderTarget( 512, 512, { minFilter: THREE.LinearFilter, magFilter: THREE.NearestFilter, format: THREE.RGBFormat } );
 				
@@ -517,6 +518,93 @@
 						value: [2, -1, 0]
 					},			*/
 					/**********************************************************/
+					//--cube
+					//verts
+					"cube1.v[0]": {
+						type: 'fv',
+						value: cubeVtx[0],
+					},
+					"cube1.v[1]": {
+						type: 'fv',
+						value: cubeVtx[1],
+					},
+					"cube1.v[2]": {
+						type: 'fv',
+						value: cubeVtx[2],
+					},
+					"cube1.v[3]": {
+						type: 'fv',
+						value: cubeVtx[3],
+					},
+					"cube1.v[4]": {
+						type: 'fv',
+						value: cubeVtx[4],
+					},
+					"cube1.v[5]": {
+						type: 'fv',
+						value: cubeVtx[5],
+					},
+					"cube1.v[6]": {
+						type: 'fv',
+						value: cubeVtx[6],
+					},
+					"cube1.v[7]": {
+						type: 'fv',
+						value: cubeVtx[7],
+					},
+
+					//colors
+					"cube1.c[0]": {
+						type: 'fv',
+						value: cubeCol[0],
+					},
+					"cube1.c[1]": {
+						type: 'fv',
+						value: cubeCol[1],
+					},
+					"cube1.c[2]": {
+						type: 'fv',
+						value: cubeCol[2],
+					},
+					"cube1.c[3]": {
+						type: 'fv',
+						value: cubeCol[3],
+					},
+					"cube1.c[4]": {
+						type: 'fv',
+						value: cubeCol[4],
+					},
+					"cube1.c[5]": {
+						type: 'fv',
+						value: cubeCol[5],
+					},				
+					
+					//norms
+					"cube1.n[0]": {
+						type: 'fv',
+						value: cubeNorm[0],
+					},
+					"cube1.n[1]": {
+						type: 'fv',
+						value: cubeNorm[1],
+					},
+					"cube1.n[2]": {
+						type: 'fv',
+						value: cubeNorm[2],
+					},
+					"cube1.n[3]": {
+						type: 'fv',
+						value: cubeNorm[3],
+					},
+					"cube1.n[4]": {
+						type: 'fv',
+						value: cubeNorm[4],
+					},
+					"cube1.n[5]": {
+						type: 'fv',
+						value: cubeNorm[5],
+					},	
+					/**********************************************************/
 					cameraPos: {
 						type: 'fv', // vec3
 						value: [0, 0, 0]
@@ -533,6 +621,8 @@
 						type: 'fv', // vec3
 						value: [0, 0, 0]
 					},
+					/**********************************************************/
+					
 				};			
 
 				attributes = {
@@ -565,7 +655,6 @@
 				quad = new THREE.Mesh( plane, materialScreen );
 				quad.position.z = 0;
 				sceneScreen.add( quad );
-
 				
 				stats = new Stats();
 				stats.domElement.style.position = 'absolute';
@@ -577,7 +666,7 @@
 
 				requestAnimationFrame( animate );
 				stats.update();
-				controls.update();
+				//controls.update();
 				render();				
 			}
 
@@ -587,42 +676,6 @@
 				camera.matrixWorldInverse.getInverse(camera.matrixWorld);			
 
 				var time = Date.now() * 0.0015;
-
-				/*update cam & sphere positions*/
-				x1 = Math.sin(t * 1.1) * 1.5;
-    				y1 = Math.cos(t * 1.3) * 1.5;
-   				z1 = Math.sin(t + Math.PI/3) * 1.5;
-    				x2 = Math.cos(t * 1.2) * 1.5;
-    				y2 = Math.sin(t * 1.4) * 1.5;
-    				z2 = Math.sin(t*1.25 - Math.PI/3) * 1.5;
-    				x3 = Math.cos(t * 1.15) * 1.5;
-    				y3 = Math.sin(t * 1.37) * 1.5;
-    				z3 = Math.sin(t*1.27) * 1.5;
-
-				s1 = { x: Math.sin(t * 1.1) * 1.5,
-				       y: Math.cos(t * 1.3) * 1.5,
-				       z: Math.sin(t + Math.PI/3) * 1.5
-				};
-
-				/*update uniforms*/
-				
-				//----why doesnt this work makes no sense
-				/*x = Math.sin(t * 0.4) * 18;
-				 y = Math.sin(t * 0.13) * 5 + 5;
-				 z = Math.cos(t * 0.4) * 18;*/
-
-				s = { x: Math.sin(t * 0.4) * 18,
-				      y: Math.sin(t * 0.13) * 5 + 5,
-				      z: Math.cos(t * 0.4) * 18,
-				    }
-
-				//uniforms.cameraPos.value = [camP.x, camP.y, camP.z];
-				s1.x = 1 + Math.sin(t);
-	
-				//uniforms.sphere1Center.value = [s1.x, s1.y, s1.z];
-				//uniforms.sphere2Center.value = [s1.x, s1.y, s1.z];
-				//uniforms.sphere3Center.value = [s1.x, s1.y, s1.z];
-				/*triangle*/	
 
 				/*camC.copy(lookDir);
 				camC.multiplyScalar(20);
@@ -649,56 +702,13 @@
 				dBL = cLeftB.distanceTo(camera.position);
 				dBR = cRightB.distanceTo(camera.position);
 
-				//--calc corners
-				/*lookDir.subVectors(origin, camP);
-				lookDir.normalize();
+				//--calc corners								
+				/*camP.x = -7.489501980;
+				camP.y = 0.9801126186539765;
+				camP.z = 19.917282455609914;*/
 
-				var offset = 5;
-				camRight.crossVectors(lookDir, camUp);
-				camRight.normalize();
+				cPos.applyMatrix4(camRotationMatrix);
 
-				camUp.crossVectors(camRight, lookDir);
-				camUp.normalize();
-
-				camLeft.copy(camRight);
-				camLeft.multiplyScalar(-1);
-
-				camDown.copy(camUp);
-				camDown.multiplyScalar(-1);
-
-				lookDir.multiplyScalar(offset);
-
-				camLeft.multiplyScalar(1.6);
-				camRight.multiplyScalar(1.6);
-				
-				uL.addVectors(lookDir, camUp);
-				uL.add(camLeft);
-				uL.add(camP);
-
-				uR.addVectors(lookDir, camera.up);
-				uR.add(camRight);
-				uR.add(camP);
-
-				bL.addVectors(lookDir, camDown);
-				bL.add(camLeft);
-				bL.add(camP);
-				
-				bR.addVectors(lookDir, camDown);
-				bR.add(camRight);	
-				bR.add(camP);*/
-		
-				//camP.x = 5*Math.sin(t);
-				//camP.y = camera.position.y;
-				//camP.z = camera.position.z;
-				
-				/*camP = { x: Math.sin(t * 0.4) * 18,
-                   		y: Math.sin(t * 0.13) * 5 + 5,
-                   		z: Math.cos(t * 0.4) * 18 };*/
-								
-				camP.x = camera.position.x;
-				camP.y =camera.position.y;
-
-				
 				uniforms.cameraPos.value = [camP.x, camP.y, camP.z];
 			
 				var offset = 6;
@@ -775,6 +785,77 @@
   function vectMul(v, l) {
     return { x: v.x*l, y: v.y*l, z: v.z*l };
   }
+
+	    function degToRad(degrees) {
+        return degrees * Math.PI / 180;
+    }
+
+     function handleMouseDown(event) {
+        mouseDown = true;
+        lastMouseX = event.clientX;
+        lastMouseY = event.clientY;
+	
+	//alert("mouse down");
+     }
+
+    function handleMouseUp(event) {
+        mouseDown = false;
+	//alert("mouse up");
+    }
+	
+	function handleMouseMove(event) {
+       /* if (!mouseDown) {
+            return;
+        }
+        var newX = event.clientX;
+        var newY = event.clientY;
+
+        var deltaX = newX - lastMouseX
+        var newRotationMatrix = mat4.create();
+        mat4.identity(newRotationMatrix);
+        mat4.rotate(newRotationMatrix, degToRad(deltaX / 10), [0, 1, 0]);
+
+        var deltaY = newY - lastMouseY;
+        mat4.rotate(newRotationMatrix, degToRad(deltaY / 10), [1, 0, 0]);
+
+        mat4.multiply(newRotationMatrix, moonRotationMatrix, moonRotationMatrix);
+
+        lastMouseX = newX
+        lastMouseY = newY;
+      */
+
+	if (!mouseDown) {
+            return;
+        }
+        var newX = event.clientX;
+        var newY = event.clientY;
+
+        var deltaX = newX - lastMouseX;
+        var rotMatrixX = new THREE.Matrix4();
+        var rotMatrixY = new THREE.Matrix4();
+	var rotMatrixXY = new THREE.Matrix4();
+
+        //mat4.rotate(newRotationMatrix, degToRad(deltaX / 10), [0, 1, 0]);
+	rotX = degToRad(deltaX / 10);
+	rotMatrixY.makeRotationY(rotX);
+
+        var deltaY = newY - lastMouseY;
+        //mat4.rotate(newRotationMatrix, degToRad(deltaY / 10), [1, 0, 0]);
+	rotY = degToRad(deltaY / 10);
+	rotMatrixX.makeRotationX(rotY);	
+
+        //mat4.multiply(newRotationMatrix, moonRotationMatrix, moonRotationMatrix);
+	rotMatrixXY.multiplyMatrices(rotMatrixX, rotMatrixY);
+
+	camRotationMatrix.multiply(rotMatrixXY);
+
+        lastMouseX = newX
+        lastMouseY = newY;	
+
+	
+
+	//alert("mouse move");
+    }
 
 		</script>
 	</body>
