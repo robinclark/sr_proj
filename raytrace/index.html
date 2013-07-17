@@ -416,6 +416,8 @@
 			var rotY;
 			//var newRotationMatrix;
 			var cPos;
+			var cPosL;
+			var startPos;
 
 			init();
 			animate();
@@ -434,7 +436,7 @@
 
 				lookDir = {x: 0, y: 0, z: 0};
 				camUp = {x: 0, y: 1, z: 0};
-				camP = {x: 0, y: 0, z: 20};
+				camP = {x: 0, y: 0, z: 0};
 				origin = {x: 0, y: 0, z: 0};			
 				center = {x: 0, y: 0, z: 0};
 				
@@ -446,7 +448,9 @@
 
 				//mouse movement
 				camRotationMatrix = new THREE.Matrix4();
-				cPos = new THREE.Vector3(camP.x, camP.y, camP.z);
+				cPos = new THREE.Vector3();
+				startPos = new THREE.Vector3(0, 0, 20);
+				cPos.copy(startPos);
 				
 				//camera
 				cameraRTT = new THREE.OrthographicCamera( w / - 2, w / 2, h  / 2, h / - 2, -10000, 10000 );
@@ -703,13 +707,9 @@
 				dBR = cRightB.distanceTo(camera.position);
 
 				//--calc corners								
-				/*camP.x = -7.489501980;
-				camP.y = 0.9801126186539765;
-				camP.z = 19.917282455609914;*/
-
-				cPos.applyMatrix4(camRotationMatrix);
-
-				uniforms.cameraPos.value = [camP.x, camP.y, camP.z];
+				camP.x = cPos.x;
+				camP.y = cPos.y;
+				camP.z = cPos.z;			
 			
 				var offset = 6;
 				lookDir = normalize(vectSub(origin, camP));
@@ -729,10 +729,14 @@
 				plotPos[2] = cLeftB;
 				plotPos[3] = cRightB;*/
 
+				uniforms.cameraPos.value = [camP.x, camP.y, camP.z];
 				plotPos[0] = uL;
 				plotPos[1] = uR;
 				plotPos[2] = bL;
 				plotPos[3] = bR;
+
+				
+				
 
 				renderer.clear();
 
@@ -852,7 +856,8 @@
         lastMouseX = newX
         lastMouseY = newY;	
 
-	
+	cPos.copy(startPos);
+	cPos.applyMatrix4(camRotationMatrix);
 
 	//alert("mouse move");
     }
