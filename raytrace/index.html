@@ -39,6 +39,7 @@
 		<script src="js/libs/stats.min.js"></script>
 		<script src="js/controls/FirstPersonControls.js"></script>
 		<script src="js/controls/TrackballControls.js"></script>
+		<script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
 
 		<!--***FRAGMENT SHADER TEXTURE***-->				      
 		<script id="fragment_shader_texture" type="x-shader/x-fragment">
@@ -54,6 +55,9 @@
   			uniform vec3 sphere1Center;
   			uniform vec3 sphere2Center;
   			uniform vec3 sphere3Center;
+			uniform float cX;
+			uniform float cY;
+			uniform float cZ;
 
 			struct Cube
 			{
@@ -288,7 +292,9 @@
 
   			void main(void)
   			{
+				vec3 cPos = vec3(cX, cY, cZ);
     				vec3 cameraDir = normalize(vPosition - cameraPos);
+				//vec3 cameraDir = normalize(vPosition - cPos);
 
     				vec3 p1, norm, p2;
     				vec3 col, colT, colM, col3;
@@ -307,7 +313,6 @@
           						col += lightAt(norm, -cameraDir, colT) * colM;
         					}
       					}
-
       					gl_FragColor = vec4(col, 1.0);
     				}
     				else
@@ -315,9 +320,7 @@
       					gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
     				}
  			}
-
 		</script>
-
 		<!--***VERTEX SHADER TEXTURE***-->
 		<script id="vertex_shader_texture" type="x-shader/x-vertex">
 
@@ -394,7 +397,7 @@
 			var camLeft, camRight, camDown;
 
 			var lookDir; 
-			var camP;
+			//var camP;
 			var camUp;
 			var x, y, z;
 			var x1, y1, z1;
@@ -414,10 +417,23 @@
 			var camRotationMatrix;
 			var rotX;
 			var rotY;
-			//var newRotationMatrix;
+			var newRotationMatrix;
 			var cPos;
 			var cPosL;
 			var startPos;
+			var camRotationMatrix = mat4.create();
+			mat4.identity(camRotationMatrix);
+
+			var t = 0;
+			var camOrig = vec3.create();
+  			camOrig[0] = 0;
+  			camOrig[1] = 0;
+  			camOrig[2] = 20;
+
+  			var tCameraFrom = mat4.create();
+  			mat4.identity(tCameraFrom);
+
+			var center;
 
 			init();
 			animate();
@@ -436,7 +452,7 @@
 
 				lookDir = {x: 0, y: 0, z: 0};
 				camUp = {x: 0, y: 1, z: 0};
-				camP = {x: 0, y: 0, z: 0};
+				//camP = {x: 0, y: 0, z: 0};
 				origin = {x: 0, y: 0, z: 0};			
 				center = {x: 0, y: 0, z: 0};
 				
@@ -447,7 +463,7 @@
 				cubeMat = new THREE.Matrix4();
 
 				//mouse movement
-				camRotationMatrix = new THREE.Matrix4();
+				//camRotationMatrix = new THREE.Matrix4();
 				cPos = new THREE.Vector3();
 				startPos = new THREE.Vector3(0, 0, 20);
 				cPos.copy(startPos);
@@ -485,6 +501,20 @@
 				
 				uniforms = {
 					
+					/**********************************************************/
+					//--individual cam coord
+					cX: {
+						type: "f",
+						value: 0,
+					},
+					cY: {
+						type: "f",
+						value: 0,
+					},					
+					cZ: {
+						type: "f",
+						value: 0,
+					},
 					/**********************************************************/
 					//--plane
 					"plane.type": {
@@ -674,10 +704,13 @@
 				render();				
 			}
 
-			var t = 0;
+						
+
 			function render() {
 				camera.updateMatrixWorld();
-				camera.matrixWorldInverse.getInverse(camera.matrixWorld);			
+				camera.matrixWorldInverse.getInverse(camera.matrixWorld);	
+
+				mat4.translate(camRotationMatrix, camOrig, tCameraFrom); 		
 
 				var time = Date.now() * 0.0015;
 
@@ -707,9 +740,17 @@
 				dBR = cRightB.distanceTo(camera.position);
 
 				//--calc corners								
-				camP.x = cPos.x;
+				/*camP.x = cPos.x;
 				camP.y = cPos.y;
-				camP.z = cPos.z;			
+				camP.z = cPos.z;	*/
+
+				
+   				camP = { 
+					x: tCameraFrom[12],
+					y: tCameraFrom[13],
+					z: tCameraFrom[14],
+				};
+		
 			
 				var offset = 6;
 				lookDir = normalize(vectSub(origin, camP));
@@ -729,20 +770,23 @@
 				plotPos[2] = cLeftB;
 				plotPos[3] = cRightB;*/
 
+				uniforms.sphere1Center.value = [center.x, center.y, center.z];
 				uniforms.cameraPos.value = [camP.x, camP.y, camP.z];
+
+				uniforms.cX.value = camP.x;
+				uniforms.cY.value = camP.y;
+				uniforms.cZ.value = camP.z;
+
 				plotPos[0] = uL;
 				plotPos[1] = uR;
 				plotPos[2] = bL;
-				plotPos[3] = bR;
-
-				
-				
+				plotPos[3] = bR;				
 
 				renderer.clear();
 
 				// Render first scene into texture
 
-				//renderer.render( sceneRTT, cameraRTT, rtTexture, true );
+				// renderer.render( sceneRTT, cameraRTT, rtTexture, true );
 			
 				// Render full screen quad with generated texture
 
@@ -807,28 +851,28 @@
 	//alert("mouse up");
     }
 	
-	function handleMouseMove(event) {
-       /* if (!mouseDown) {
-            return;
+    function handleMouseMove(event) {
+	if (!mouseDown) 
+	{
+            	return;
         }
-        var newX = event.clientX;
-        var newY = event.clientY;
+        	var newX = event.clientX;
+        	var newY = event.clientY;
 
-        var deltaX = newX - lastMouseX
-        var newRotationMatrix = mat4.create();
-        mat4.identity(newRotationMatrix);
-        mat4.rotate(newRotationMatrix, degToRad(deltaX / 10), [0, 1, 0]);
+        	var deltaX = newX - lastMouseX
+        	var newRotationMatrix = mat4.create();
+        	mat4.identity(newRotationMatrix);
+        	mat4.rotate(newRotationMatrix, degToRad(deltaX / 10), [0, 1, 0]);
 
-        var deltaY = newY - lastMouseY;
-        mat4.rotate(newRotationMatrix, degToRad(deltaY / 10), [1, 0, 0]);
+        	var deltaY = newY - lastMouseY;
+        	mat4.rotate(newRotationMatrix, degToRad(deltaY / 10), [1, 0, 0]);
 
-        mat4.multiply(newRotationMatrix, moonRotationMatrix, moonRotationMatrix);
+        	mat4.multiply(newRotationMatrix, camRotationMatrix , camRotationMatrix );
 
-        lastMouseX = newX
-        lastMouseY = newY;
-      */
+        	lastMouseX = newX
+        	lastMouseY = newY;
 
-	if (!mouseDown) {
+	/*if (!mouseDown) {
             return;
         }
         var newX = event.clientX;
@@ -859,7 +903,7 @@
 	cPos.copy(startPos);
 	cPos.applyMatrix4(camRotationMatrix);
 
-	//alert("mouse move");
+	//alert("mouse move");*/
     }
 
 		</script>
