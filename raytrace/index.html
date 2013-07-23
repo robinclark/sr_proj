@@ -319,6 +319,8 @@
 				{
       					gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
     				}
+				//float c = cameraPos.x;
+				//gl_FragColor = vec4(cameraPos.z/20.0, 0.0, 0.0, 1.0);
  			}
 		</script>
 		<!--***VERTEX SHADER TEXTURE***-->
@@ -434,6 +436,7 @@
   			mat4.identity(tCameraFrom);
 
 			var center;
+			var a, b, c, d, e, f, g, h, i;
 
 			init();
 			animate();
@@ -713,6 +716,8 @@
 				mat4.translate(camRotationMatrix, camOrig, tCameraFrom); 		
 
 				var time = Date.now() * 0.0015;
+				
+				uniforms.sphere1center.value = [0.0, 1.0, 0.0];
 
 				/*camC.copy(lookDir);
 				camC.multiplyScalar(20);
@@ -742,7 +747,7 @@
 				//--calc corners								
 				/*camP.x = cPos.x;
 				camP.y = cPos.y;
-				camP.z = cPos.z;	*/
+				camP.z = cPos.z;*/
 
 				
    				camP = { 
@@ -762,6 +767,8 @@
 				uL = vectSub(vectAdd(center, up), vectMul(camRight, ratio));
 				bL = vectSub(vectSub(center, up), vectMul(camRight, ratio));
 				
+				
+				
 				//--pass values to aPlotPosition attribute
 				var plotPos = attributes.aPlotPosition.value;
 	
@@ -776,6 +783,22 @@
 				uniforms.cX.value = camP.x;
 				uniforms.cY.value = camP.y;
 				uniforms.cZ.value = camP.z;
+				
+				o = {x: 0, y: 0, z: 0};
+				
+				a = distance(uL, o);
+				b = distance(uR, o);
+				c = distance(bL, o);
+				d = distance(bR, o);
+				
+				e = distance(camP, uL);
+				f = distance(camP, uR);
+				g = distance(camP, bL);
+				h = distance(camP, bR);
+				
+				i = distance(camP, o);
+				
+				
 
 				plotPos[0] = uL;
 				plotPos[1] = uR;
@@ -832,6 +855,10 @@
 
   function vectMul(v, l) {
     return { x: v.x*l, y: v.y*l, z: v.z*l };
+  }
+  
+  function distance(v1, v2) {
+	return Math.sqrt((v1.x-v2.x)*(v1.x-v2.x) + (v1.y-v2.y)*(v1.y-v2.y) + (v1.z-v2.z)*(v1.z-v2.z));
   }
 
 	    function degToRad(degrees) {
