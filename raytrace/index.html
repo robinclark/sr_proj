@@ -487,7 +487,7 @@
 				camera.position.z = 20;
 				
 				//controls
-				//controls = new THREE.TrackballControls( camera, renderer.domElement );
+				controls = new THREE.TrackballControls( camera, renderer.domElement );
 
 				/*controls.rotateSpeed = 1.0;
 				controls.zoomSpeed = 1.2;
@@ -714,7 +714,7 @@
 
 				requestAnimationFrame( animate );
 				stats.update();
-				//controls.update();
+				controls.update();
 				render();				
 			}
 
@@ -762,9 +762,12 @@
 
 				
    				camP = { 
-					x: tCameraFrom[12],
+					/*x: tCameraFrom[12],
 					y: tCameraFrom[13],
-					z: tCameraFrom[14],
+					z: tCameraFrom[14],*/
+					x: camera.position.x,
+					y: camera.position.y,
+					z: camera.position.z,
 				};
 		
 			
