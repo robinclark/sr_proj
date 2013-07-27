@@ -319,8 +319,10 @@
 				{
       					gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
     				}
+				//gl_FragColor = vec4(abs(vPosition.x/1.6), abs(vPosition.y), 1.0, 1.0);
+				//gl_FragColor = vec4(abs(vPosition)/1.6, 1.0);
 				//float c = cameraPos.x;
-				//gl_FragColor = vec4(cameraPos.z/20.0, 0.0, 0.0, 1.0);
+				//gl_FragColor = vec4(sphere1Center, 1.0);
  			}
 		</script>
 		<!--***VERTEX SHADER TEXTURE***-->
@@ -430,13 +432,17 @@
 			var camOrig = vec3.create();
   			camOrig[0] = 0;
   			camOrig[1] = 0;
-  			camOrig[2] = 20;
+  			camOrig[2] = -20;
 
   			var tCameraFrom = mat4.create();
   			mat4.identity(tCameraFrom);
 
 			var center;
 			var a, b, c, d, e, f, g, h, i;
+			var sC;
+			
+			var plotPos;
+			var attributes;
 
 			init();
 			animate();
@@ -667,7 +673,12 @@
 						type : 'v3',
 						value : []
 					},
-				}	
+				}
+				
+				plotPos = attributes.aPlotPosition.value;
+				for (var i = 0; i < 4; i++) {
+					plotPos[i] = 0;
+				}
 
 				material = new THREE.ShaderMaterial( {
 					uniforms: uniforms,
@@ -717,7 +728,7 @@
 
 				var time = Date.now() * 0.0015;
 				
-				uniforms.sphere1center.value = [0.0, 1.0, 0.0];
+				//uniforms.sphere1Center.value = [0.0, 0.0, 0.0];
 
 				/*camC.copy(lookDir);
 				camC.multiplyScalar(20);
@@ -766,25 +777,21 @@
 				bR = vectAdd(vectSub(center, up), vectMul(camRight, ratio));
 				uL = vectSub(vectAdd(center, up), vectMul(camRight, ratio));
 				bL = vectSub(vectSub(center, up), vectMul(camRight, ratio));
-				
-				
-				
-				//--pass values to aPlotPosition attribute
-				var plotPos = attributes.aPlotPosition.value;
 	
 				/*plotPos[0] = cLeftT;
 				plotPos[1] = cRightT;
 				plotPos[2] = cLeftB;
 				plotPos[3] = cRightB;*/
+				o = {x: 0, y: 0, z: 0};
+				//sC = vectAdd(vectMul(normalize(vectSub(o, camP)), 6), cPos);
+				
 
-				uniforms.sphere1Center.value = [center.x, center.y, center.z];
+				//uniforms.sphere1Center.value = [sC.x, sC.y, sC.z];
 				uniforms.cameraPos.value = [camP.x, camP.y, camP.z];
 
 				uniforms.cX.value = camP.x;
 				uniforms.cY.value = camP.y;
-				uniforms.cZ.value = camP.z;
-				
-				o = {x: 0, y: 0, z: 0};
+				uniforms.cZ.value = camP.z;				
 				
 				a = distance(uL, o);
 				b = distance(uR, o);
@@ -794,16 +801,21 @@
 				e = distance(camP, uL);
 				f = distance(camP, uR);
 				g = distance(camP, bL);
-				h = distance(camP, bR);
+				h += .03;
 				
-				i = distance(camP, o);
-				
-				
+				i = Math.abs(Math.sin(h));		
 
-				plotPos[0] = uL;
+				/*plotPos[0] = uL;
 				plotPos[1] = uR;
 				plotPos[2] = bL;
-				plotPos[3] = bR;				
+				plotPos[3] = bR;*/		
+				
+				attributes.aPlotPosition.value[0] = uL;
+				attributes.aPlotPosition.value[1] = uR;
+				attributes.aPlotPosition.value[2] = bL;
+				attributes.aPlotPosition.value[3] = bR;
+				
+				attributes.aPlotPosition.needsUpdate = true;
 
 				renderer.clear();
 
