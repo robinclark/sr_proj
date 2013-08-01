@@ -58,6 +58,7 @@
 			uniform float cX;
 			uniform float cY;
 			uniform float cZ;
+			vec3 nColor = vec3(1.0, 0.0, 0.0);
 
 			struct Cube
 			{
@@ -66,7 +67,7 @@
 				vec3 c[6];
 			};
 
-			Cube cube1;
+			uniform Cube cube1;
 
 			bool intersectCube(Cube c, vec3 lStart, vec3 lDir, out float dist)
 			{
@@ -107,16 +108,25 @@
 
 			uniform Triangle t;
 
-			vec3 getTriNormal(Triangle t)
+			/*vec3 getTriNormal(Triangle t)
 			{
 				vec3 a = t.coords[0] - t.coords[1];
 				vec3 b = t.coords[2] - t.coords[1];
 				vec3 r = normalize(cross(a,b));
 				
 				return r;
-			}
+			}*/
 
-			bool intersectTriangle(Triangle t, vec3 lStart, vec3 lDir, vec3 n, out float dist)
+			vec3 getTriNormal(int i[3])
+			{
+				vec3 a = cube1.v[i[0]] - cube1.v[i[1]];
+				vec3 b = cube1.v[i[2]] - cube1.v[i[1]];
+				vec3 r = normalize(cross(a,b));				
+				
+				return r;
+			}
+			
+			bool intersectTriangle(/*Triangle t*/int i[3], vec3 lStart, vec3 lDir, vec3 n, out float dist)
 			{
 				//ray dir
 				vec3 l = lDir;
@@ -133,18 +143,21 @@
 					return false;
 				}
 				
-				float num = dot((t.coords[0] - l0), n);
+				/*float num = dot((t.coords[0] - l0), n);
 				dist = num/denom;
-
-				/*vec3 p = l0+l*dist;
-				vec3 v0 = v[2]-v[0];
-				vec3 v1 = v[1]-v[0];
-				vec3 v2 = p-v[0];*/
 				
 				vec3 p = l0+l*dist;
 				vec3 v0 = t.coords[2]-t.coords[0];
 				vec3 v1 = t.coords[1]-t.coords[0];
-				vec3 v2 = p-t.coords[0];
+				vec3 v2 = p-t.coords[0];*/
+				
+				float num = dot((cube1.v[i[0]] - l0), n);
+				dist = num/denom;
+				
+				vec3 p = l0+l*dist;
+				vec3 v0 = cube1.v[i[2]] - cube1.v[i[0]];
+				vec3 v1 = cube1.v[i[1]]-cube1.v[i[0]];
+				vec3 v2 = p - cube1.v[i[0]];
 
 				float dot00 = dot(v0, v0);
 				float dot01 = dot(v0, v1);
@@ -242,9 +255,14 @@
 				vec3 pN = plane.normal;
 				//h4 = intersectPlane(pC, lStart, lDir, pN, d4);
 				
-				vec3 triN = getTriNormal(t);
-				h4 = intersectTriangle(t, lStart, lDir, triN, d4);
-
+				int i[3];
+				i[0] = 0;
+				i[1] = 1;
+				i[2] = 2;
+				
+				vec3 triN = getTriNormal(i);
+				//vec3 triN = getTriNormal(t);
+				h4 = intersectTriangle(i, lStart, lDir, triN, d4);
 				if(h4 && d4 < d1 && d4 < d2 && d4 < d3)
 				{
 					pos = lStart + d4 * lDir;
@@ -297,13 +315,13 @@
 
   			void main(void)
   			{
-				vec3 cPos = vec3(cX, cY, cZ);
+				//vec3 cPos = vec3(cX, cY, cZ);
     				vec3 cameraDir = normalize(vPosition - cameraPos);
 				//vec3 cameraDir = normalize(vPosition - cPos);
 
     				vec3 p1, norm, p2;
     				vec3 col, colT, colM, col3;
-   				if (intersectWorld(cameraPos, cameraDir, p1, norm, colT))
+   				/*if (intersectWorld(cameraPos, cameraDir, p1, norm, colT))
 				{
       					col = lightAt(norm, -cameraDir, colT);
       					colM = (colT + vec3(0.7)) / 1.7;
@@ -323,11 +341,21 @@
     				else
 				{
       					gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
-    				}
-				//gl_FragColor = vec4(abs(vPosition.x/1.6), abs(vPosition.y), 1.0, 1.0);
-				//gl_FragColor = vec4(abs(vPosition)/1.6, 1.0);
-				//float c = cameraPos.x;
-				//gl_FragColor = vec4(sphere1Center, 1.0);
+    				}*/
+				//nColor.y = 1.0;
+				//cX = 0.5f;
+				/*int i[3];
+				i[0] = 0;
+				i[1] = 1;
+				i[2] = 2;
+				vec3 nCol;
+				getTriNormal(i, nCol);*/
+				//vec3 r = abs(nCol);
+				//r = normalize(r);
+				//nCol.x = 1.0;
+				
+				gl_FragColor = vec4(t.coords[0], 1.0);
+				
  			}
 		</script>
 		<!--***VERTEX SHADER TEXTURE***-->
@@ -471,7 +499,8 @@
 				center = {x: 0, y: 0, z: 0};
 				
 				//cube info
-				cubeVtx = [[1, 1, -1], [-1, 1, -1], [1, 1, 1], [-1, 1, 1], [1, -1, -1], [-1, -1, -1], [1, -1, 1], [1, -1, 1]];
+				//cubeVtx = [[1, 1, -1], [-1, 1, -1], [1, 1, 1], [-1, 1, 1], [1, -1, -1], [-1, -1, -1], [1, -1, 1], [1, -1, 1]];
+				cubeVtx = [[1, 1, 1], [-1, 1, 1], [-1, -1, 1], [-1, 1, 1], [1, -1, -1], [-1, -1, -1], [1, -1, 1], [1, -1, 1]];
 				cubeCol = [[1, 0, 0], [1, 0, 0], [1, 0, 0], [1, 0, 0], [1, 0, 0], [1, 0, 0]];
 				cubeNorm = [[0, 1, 0], [0, -1, 0], [-1, 0, 0], [0, 0, -1], [1, 0, 0], [0, 0, 1]];
 				cubeMat = new THREE.Matrix4();
@@ -519,7 +548,7 @@
 					//--individual cam coord
 					cX: {
 						type: "f",
-						value: 0,
+						value: 1,
 					},
 					cY: {
 						type: "f",
@@ -555,30 +584,30 @@
 					//--triangle
 					"t.coords[0]": {
 						type: 'fv', // vec3
-						value: [0, 2, 2]
+						value: [1, 1, 0]
 					},
 					"t.coords[1]": {
 						type: 'fv', // vec3
-						value: [2, 0, 3]
+						value: [-1, 1, 1]
 					},
 					"t.coords[2]": {
 						type: 'fv', // vec3
-						value: [-2, 0, 3]
+						value: [-1, -1, 1]
 					},			
 					/**********************************************************/
 					//--cube
 					//verts
 					"cube1.v[0]": {
 						type: 'fv',
-						value: cubeVtx[0],
+						value: [1, 1, 0],
 					},
 					"cube1.v[1]": {
 						type: 'fv',
-						value: cubeVtx[1],
+						value: [0, 1, 0],
 					},
 					"cube1.v[2]": {
 						type: 'fv',
-						value: cubeVtx[2],
+						value: [0, 0, 1],
 					},
 					"cube1.v[3]": {
 						type: 'fv',
@@ -797,9 +826,9 @@
 				//uniforms.sphere1Center.value = [sC.x, sC.y, sC.z];
 				uniforms.cameraPos.value = [camP.x, camP.y, camP.z];
 
-				uniforms.cX.value = camP.x;
+				/*uniforms.cX.value = camP.x;
 				uniforms.cY.value = camP.y;
-				uniforms.cZ.value = camP.z;				
+				uniforms.cZ.value = camP.z;	*/			
 				
 				a = distance(uL, o);
 				b = distance(uR, o);
