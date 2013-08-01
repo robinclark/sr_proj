@@ -58,8 +58,8 @@
 			uniform float cX;
 			uniform float cY;
 			uniform float cZ;
-			vec3 nColor = vec3(1.0, 0.0, 0.0);
-
+			uniform int cubeIndices[36];
+			
 			struct Cube
 			{
 				vec3 v[8];
@@ -72,19 +72,19 @@
 			bool intersectCube(Cube c, vec3 lStart, vec3 lDir, out float dist)
 			{
 				//check for intersect at each cube face
-				//vec3 t1[3] = vec3[](	
-				//		vec3(1.0, 1.0, 1.0), 
-				//		vec3(1.0, 1.0, 1.0), 
-				//		vec3(1.0, 1.0, 1.0)
-				//	     );
-				
-				/*vec3 t1[8];
-				for(int i = 0; i < 8; i++)
-				{
-					t
-				}*/
-			
-				//intersectTriangle(
+				int index[12*3];
+				//021
+				//034
+				//456
+				//467
+				//723
+				//762
+				//612
+				//651
+				//501
+				//540
+				//430
+				//473
 				
 
 				return true;
@@ -195,10 +195,12 @@
 				
 				float num = dot((p0 - l0), n);
 				dist = num/denom;
-
-				vec3 dP = p0 - (dist*l + l0);
+				
+				//float dP = distance(p0, p);
+				vec3 p = (dist*l + l0);
+				vec3 dP = p0-p;
 				float size = plane.size;
-				if(abs(dP.x) > size || abs(dP.y) > size)
+				if(abs(dP.x) > size || abs(dP.y) > size || abs(dP.z) > size)
 				{
 					return false;
 				}
@@ -252,21 +254,27 @@
     				h3 = intersectSphere(sphere3Center, lStart, lDir, d3);
 
 				vec3 pC = plane.position;
-				vec3 pN = plane.normal;
+				vec3 pN = normalize(plane.normal);
 				//h4 = intersectPlane(pC, lStart, lDir, pN, d4);
 				
 				int i[3];
-				i[0] = 0;
+				i[0] = 4;
 				i[1] = 1;
-				i[2] = 2;
+				i[2] = 5;
 				
 				vec3 triN = getTriNormal(i);
 				//vec3 triN = getTriNormal(t);
-				h4 = intersectTriangle(i, lStart, lDir, triN, d4);
+				//h4 = intersectTriangle(i, lStart, lDir, triN, d4);
+				//vec3 center, vec3 lStart, vec3 lDir, vec3 n, out float dist
+				h4 = intersectPlane(pC, lStart, lDir, pN, d4);
+				
 				if(h4 && d4 < d1 && d4 < d2 && d4 < d3)
 				{
-					pos = lStart + d4 * lDir;
+					/*pos = lStart + d4 * lDir;
 					normal = triN;
+					color = plane.color;*/
+					pos = lStart + d4 * lDir;
+					normal = plane.normal;
 					color = plane.color;
 				}
     				else if (h1 && d1 < d2 && d1 < d3)
@@ -321,7 +329,7 @@
 
     				vec3 p1, norm, p2;
     				vec3 col, colT, colM, col3;
-   				/*if (intersectWorld(cameraPos, cameraDir, p1, norm, colT))
+   				if (intersectWorld(cameraPos, cameraDir, p1, norm, colT))
 				{
       					col = lightAt(norm, -cameraDir, colT);
       					colM = (colT + vec3(0.7)) / 1.7;
@@ -341,7 +349,7 @@
     				else
 				{
       					gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
-    				}*/
+    				}
 				//nColor.y = 1.0;
 				//cX = 0.5f;
 				/*int i[3];
@@ -354,7 +362,7 @@
 				//r = normalize(r);
 				//nCol.x = 1.0;
 				
-				gl_FragColor = vec4(t.coords[0], 1.0);
+				//gl_FragColor = vec4(cube1.v[2], 1.0);
 				
  			}
 		</script>
@@ -499,8 +507,8 @@
 				center = {x: 0, y: 0, z: 0};
 				
 				//cube info
-				//cubeVtx = [[1, 1, -1], [-1, 1, -1], [1, 1, 1], [-1, 1, 1], [1, -1, -1], [-1, -1, -1], [1, -1, 1], [1, -1, 1]];
-				cubeVtx = [[1, 1, 1], [-1, 1, 1], [-1, -1, 1], [-1, 1, 1], [1, -1, -1], [-1, -1, -1], [1, -1, 1], [1, -1, 1]];
+				cubeVtx = [[-1, 1, -1], [1, 1, -1], [1, 1, 1], [-1, 1, 1], [-1, -1, -1], [1, -1, -1], [1, -1, 1], [-1, -1, 1]];
+				//cubeVtx = [[1, 1, 1], [-1, 1, 1], [-1, -1, 1], [-1, 1, 1], [1, -1, -1], [-1, -1, -1], [1, -1, 1], [1, -1, 1]];
 				cubeCol = [[1, 0, 0], [1, 0, 0], [1, 0, 0], [1, 0, 0], [1, 0, 0], [1, 0, 0]];
 				cubeNorm = [[0, 1, 0], [0, -1, 0], [-1, 0, 0], [0, 0, -1], [1, 0, 0], [0, 0, 1]];
 				cubeMat = new THREE.Matrix4();
@@ -566,7 +574,7 @@
 					},
 					"plane.position": {
 						type: 'fv', // vec3
-						value: [0, 0, -20]
+						value: [0, 0, 2]
 					},
 					"plane.color": {
 						type: 'fv', // vec3
@@ -578,7 +586,7 @@
 					},
 					"plane.normal": {
 						type: 'fv', // vec3
-						value: [0,0,-1]
+						value: [0,1,-1]
 					},
 					/**********************************************************/
 					//--triangle
@@ -599,15 +607,15 @@
 					//verts
 					"cube1.v[0]": {
 						type: 'fv',
-						value: [1, 1, 0],
+						value: cubeVtx[0],
 					},
 					"cube1.v[1]": {
 						type: 'fv',
-						value: [0, 1, 0],
+						value: cubeVtx[1],
 					},
 					"cube1.v[2]": {
 						type: 'fv',
-						value: [0, 0, 1],
+						value: cubeVtx[2],
 					},
 					"cube1.v[3]": {
 						type: 'fv',
