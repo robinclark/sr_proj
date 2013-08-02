@@ -44,9 +44,9 @@
 		<!--***FRAGMENT SHADER TEXTURE***-->				      
 		<script id="fragment_shader_texture" type="x-shader/x-fragment">
 			precision mediump float;
-
-			//bool intersectTriangle(vec3 v[3], vec3 lStart, vec3 lDir, vec3 n, out float dist);
-
+			
+			bool intersectPlane(vec3 center, float size, vec3 lStart, vec3 lDir, vec3 n, out float dist);
+			
   			const vec3 lightDir = vec3(0.577350269, 0.577350269, -0.577350269);
 
 			varying vec3 vPosition;
@@ -71,10 +71,61 @@
 			};
 			
 			uniform Plane plane;
-			uniform Plane cube[6];
+			
+			struct Cube
+			{
+				vec3 pos;
+				float s;
+				vec3 n[6];
+				vec3 c[6];
+			};
+			
+			uniform Cube cube;
+			
+			bool intersectCube(Cube c, vec3 lStart, vec3 lDir, out float dist, out int cubeSide)
+			{
+				//calc pos of all sides
+				vec3 side[6];
+				for(int i = 0; i < 6; i++){
+					side[i] = c.pos;
+				}
+				
+				float size = c.s;
+				
+				side[0].y += size;
+				side[1].y -= size;
+				side[2].x += size;
+				side[3].x -= size;
+				side[4].z += size;
+				side[5].z -= size;
+				
+				//check intersection for each side
+				float d = 10000.0, cD = 10000.0;
+				
+				for (int i = 0; i < 6; i++)
+				{
+					if (intersectPlane(side[i], c.s, lStart, lDir, c.n[i], cD))
+					{
+						if (cD < d)
+						{
+							d = cD;
+							cubeSide = i;
+						}
+					}
+				}
+				
+				//return shortest distance
+				dist = d;
+				
+				if (d < 10000.0) {
+					return true;
+				}
+				
+				return false;
+			}
 			
 
-			bool intersectPlane(vec3 center, vec3 lStart, vec3 lDir, vec3 n, out float dist)
+			bool intersectPlane(vec3 center, float size, vec3 lStart, vec3 lDir, vec3 n, out float dist)
 			{
 				//ray dir
 				vec3 l = lDir;
@@ -96,7 +147,7 @@
 				//float dP = distance(p0, p);
 				vec3 p = (dist*l + l0);
 				vec3 dP = p0-p;
-				float size = plane.size;
+				//float size = plane.size;
 				if(abs(dP.x) > size || abs(dP.y) > size || abs(dP.z) > size)
 				{
 					return false;
@@ -149,16 +200,18 @@
     				h2 = intersectSphere(sphere2Center, lStart, lDir, d2);
     				h3 = intersectSphere(sphere3Center, lStart, lDir, d3);
 
-				vec3 pC = plane.position;
-				vec3 pN = normalize(plane.normal);
+				//vec3 pC = plane.position;
+				//vec3 pN = normalize(plane.normal);
 
-				h4 = intersectPlane(pC, lStart, lDir, pN, d4);
-				
+				//h4 = intersectPlane(pC, lStart, lDir, pN, d4);
+				//		  (Cube c, vec3 lStart, vec3 lDir, out float dist, out int cubeSide)
+				int cSide;
+				h4 = intersectCube(cube, lStart, lDir, d4, cSide);
 				if(h4 && d4 < d1 && d4 < d2 && d4 < d3)
 				{
 					pos = lStart + d4 * lDir;
-					normal = plane.normal;
-					color = plane.color;
+					normal = cube.n[cSide];
+					color = cube.c[cSide];
 				}
     				else if (h1 && d1 < d2 && d1 < d3)
 				{
@@ -217,7 +270,7 @@
       					col = lightAt(norm, -cameraDir, colT);
       					colM = (colT + vec3(0.7)) / 1.7;
       					cameraDir = reflect(cameraDir, norm);
-      					if (intersectWorld(p1, cameraDir, p2, norm, colT))
+      					/*if (intersectWorld(p1, cameraDir, p2, norm, colT))
 					{
         					col += lightAt(norm, -cameraDir, colT) * colM;
         					colM *= (colT + vec3(0.7)) / 1.7;
@@ -226,7 +279,7 @@
 						{
           						col += lightAt(norm, -cameraDir, colT) * colM;
         					}
-      					}
+      					}*/
       					gl_FragColor = vec4(col, 1.0);
     				}
     				else
@@ -389,6 +442,67 @@
 					sphere3Center: {
 						type: 'fv', // vec3
 						value: [0, 0, 0]
+					},
+					/**********************************************************/
+					//--cube
+					"cube.pos": {
+						type: 'fv',
+						value: [0, 2, 0]
+					},
+					//size
+					"cube.s": {
+						type: 'f',
+						value: 1.0
+					},
+					//normals
+					"cube.n[0]": {
+						type: 'fv',
+						value: [0, 1, 0]
+					},
+					"cube.n[1]": {
+						type: 'fv',
+						value: [0, -1, 0]
+					},
+					"cube.n[2]": {
+						type: 'fv',
+						value: [1, 0, 0]
+					},
+					"cube.n[3]": {
+						type: 'fv',
+						value: [-1, 0, 0]
+					},
+					"cube.n[4]": {
+						type: 'fv',
+						value: [0, 0, 1]
+					},
+					"cube.n[5]": {
+						type: 'fv',
+						value: [0, 0, -1]
+					},
+					//face colorrs
+					"cube.c[0]": {
+						type: 'fv',
+						value: [1, 0, 0]
+					},
+					"cube.c[1]": {
+						type: 'fv',
+						value: [0, 1, 0]
+					},
+					"cube.c[2]": {
+						type: 'fv',
+						value: [0, 0, 1]
+					},
+					"cube.c[3]": {
+						type: 'fv',
+						value: [1, 1, 0]
+					},
+					"cube.c[4]": {
+						type: 'fv',
+						value: [0, 1, 1]
+					},
+					"cube.c[5]": {
+						type: 'fv',
+						value: [1, 0, 1]
 					},
 					/**********************************************************/
 				};			
