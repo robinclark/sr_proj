@@ -48,6 +48,7 @@
 			bool intersectPlane(vec3 center, float size, vec3 lStart, vec3 lDir, vec3 n, out float dist);
 			
   			const vec3 lightDir = vec3(0.577350269, 0.577350269, -0.577350269);
+			//const vec3 light2Dir
 
 			varying vec3 vPosition;
 
@@ -55,12 +56,6 @@
   			uniform vec3 sphere1Center;
   			uniform vec3 sphere2Center;
   			uniform vec3 sphere3Center;
-
-			bool intersectCube(vec3 lStart, vec3 lDir, out float dist)
-			{
-				
-				return true;
-			}
 
 			struct Plane
 			{
@@ -160,7 +155,8 @@
 
  			bool intersectSphere(vec3 center, vec3 lStart, vec3 lDir, out float dist)
 			{
-    				vec3 c = center - lStart;
+    				//vec3 c = center - lStart;
+				vec3 c = center - lStart;
     				float b = dot(lDir, c);
     				float d = b*b - dot(c, c) + 1.0;
     				if (d < 0.0) {
@@ -174,15 +170,16 @@
       					return false;
     				}
 
-    				return true;
-  			}
+					return true;
+  			}		
 
   			vec3 lightAt(vec3 N, vec3 V, vec3 color)
 			{
     				vec3 L = lightDir;
     				vec3 R = reflect(-L, N);
+				
 
-    				float c = 0.3 + 0.4 * pow(max(dot(R, V), 0.0), 30.0) + 0.7 * dot(L, N);
+    				float c = 0.5 + 0.4 * pow(max(dot(R, V), 0.0), 30.0) + 0.7 * dot(L, N);
 
     				if (c > 1.0) {
       					return mix(color, vec3(1.6, 1.6, 1.6), c - 1.0);
@@ -269,7 +266,7 @@
 				{
       					col = lightAt(norm, -cameraDir, colT);
       					colM = (colT + vec3(0.7)) / 1.7;
-      					cameraDir = reflect(cameraDir, norm);
+      					//cameraDir = reflect(cameraDir, norm);
       					/*if (intersectWorld(p1, cameraDir, p2, norm, colT))
 					{
         					col += lightAt(norm, -cameraDir, colT) * colM;
@@ -479,7 +476,8 @@
 						type: 'fv',
 						value: [0, 0, -1]
 					},
-					//face colorrs
+					
+					//face colors
 					"cube.c[0]": {
 						type: 'fv',
 						value: [1, 0, 0]
