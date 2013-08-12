@@ -48,7 +48,7 @@
 			bool intersectPlane(vec3 center, float size, vec3 lStart, vec3 lDir, vec3 n, out float dist);
 			
   			const vec3 lightDir = vec3(0.577350269, 0.577350269, -0.577350269);
-			const vec3 lightPos = vec3(15.0, 0.0, 0.0);
+			const vec3 lightPos = vec3(10.0, 0.0, 0.0);
 			//const vec3 light2Dir
 
 			varying vec3 vPosition;
@@ -174,11 +174,11 @@
 					return true;
   			}		
 
-  			vec3 lightAt(vec3 N, vec3 V, vec3 P,vec3 color)
+  			vec3 lightAt(vec3 N, vec3 V, vec3 P, vec3 color)
 			{
-    				vec3 L = lightDir;
-				//vec3 L = P - lightPos;
-    				vec3 R = reflect(L, N);
+    				//vec3 L = lightDir;
+				vec3 L = normalize(P - lightPos);
+    				vec3 R = reflect(L, normalize(N));
 				
 
     				float c = 0.5 + 0.4 * pow(max(dot(R, V), 0.0), 30.0) + 0.7 * dot(L, N);
@@ -209,24 +209,24 @@
 				if(h4 && d4 < d1 && d4 < d2 && d4 < d3)
 				{
 					pos = lStart + d4 * lDir;
-					normal = cube.n[cSide];
+					normal = normalize(cube.n[cSide]);
 					color = cube.c[cSide];
 				}
     				else if (h1 && d1 < d2 && d1 < d3)
 				{
       					pos = lStart + d1 * lDir;
-      					normal = pos - sphere1Center;
+      					normal = normalize(pos - sphere1Center);
       					color = vec3(0.0, 0.0, 0.9);
     				}
     				else if (h2 && d2 < d3)
 				{
       					pos = lStart + d2 * lDir;
-      					normal = pos - sphere2Center;
+      					normal = normalize(pos - sphere2Center);
       					color = vec3(0.9, 0.0, 0.0);
     				}
     				else if (h3) {
       					pos = lStart + d3 * lDir;
-      					normal = pos - sphere3Center;
+      					normal = normalize(pos - sphere3Center);
       					color = vec3(0.0, 0.9, 0.0);
     				}
     				else if (lDir.y < -0.01)
