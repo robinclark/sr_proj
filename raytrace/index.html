@@ -48,6 +48,7 @@
 			bool intersectPlane(vec3 center, float size, vec3 lStart, vec3 lDir, vec3 n, out float dist);
 			
   			const vec3 lightDir = vec3(0.577350269, 0.577350269, -0.577350269);
+			const vec3 lightPos = vec3(15.0, 0.0, 0.0);
 			//const vec3 light2Dir
 
 			varying vec3 vPosition;
@@ -173,10 +174,11 @@
 					return true;
   			}		
 
-  			vec3 lightAt(vec3 N, vec3 V, vec3 color)
+  			vec3 lightAt(vec3 N, vec3 V, vec3 P,vec3 color)
 			{
     				vec3 L = lightDir;
-    				vec3 R = reflect(-L, N);
+				//vec3 L = P - lightPos;
+    				vec3 R = reflect(L, N);
 				
 
     				float c = 0.5 + 0.4 * pow(max(dot(R, V), 0.0), 30.0) + 0.7 * dot(L, N);
@@ -264,7 +266,7 @@
     				vec3 col, colT, colM, col3;
    				if (intersectWorld(cameraPos, cameraDir, p1, norm, colT))
 				{
-      					col = lightAt(norm, -cameraDir, colT);
+      					col = lightAt(norm, -cameraDir, p1, colT);
       					colM = (colT + vec3(0.7)) / 1.7;
       					//cameraDir = reflect(cameraDir, norm);
       					/*if (intersectWorld(p1, cameraDir, p2, norm, colT))
