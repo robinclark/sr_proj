@@ -1,0 +1,72 @@
+refraction
+
+photon map construction
+-diffuse
+-caustic
+-?
+
+-photon lookup
+ - kd tree?
+ - ggia tech method
+
+
+T fresneleffect = mix<T>(pow(1 - facingratio, 3), 1, 0.1);
+surfaceColor = (reflection * fresneleffect + refraction * (1 - fresneleffect) * sphere->transparency) * sphere->surfaceColor;
+
+vec3 shadow_col = vec3(0.0, 0.0, 0.0) //black
+
+struct Sphere
+{
+	center
+	size
+	transparency
+};
+
+int intersect_scene(raystart, raydir, out d, out pos)
+- float d = 10000
+- int s = -1//current shape
+- for each shape in scene
+ - if intersect
+  - if dist < d
+   - d = dist
+   - s = i
+- if s > -1
+ - pos = raystart + raydir * d
+- return s
+
+render_world
+- float d
+- for each ray
+  -if intersect_scene(raystart, raydir, out d, out pos) > -1
+   - if (shapes[s].transparent)
+    - vec3 refr, refl
+    - //get reflection and refraction directions
+    - /*refr_dir = refraction_direction(pos, raydir, n, ref_index1, ref_index2)
+    - refl_dir = reflection_direction(pos, raydir, n)
+    - vec3 c1, c2;
+    - c1 = intersect_scene(refr)
+    - c2 = intersect_scene(refl)
+    - float reflect;
+    - reflect = schlik();
+    - c_mix = (shapes[s].refl * reflect + shapes[s].refr* (1 - reflect) /*transmitted*/ * sphere->transparency) * shapes[s].col;
+    - color = c_mix*/
+  - if shadow_ray(raystart, raydir)
+   - return color
+  - else
+    - return shadow_color
+
+bool shadow_ray(raystart)
+- for each light
+ - vec3 raydir = light.position - raystart
+   -if (!intersect_scene(raystart, raydir, d, pos)
+    - return true(lit)	
+
+//?***
+vec3 refraction_direction(raystart, raydir, pos, n, ref_index1, ref_index2)
+
+
+vec3 reflection_direction(raystart, raydir, pos, n)
+
+
+vec3 schlick()
+

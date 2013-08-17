@@ -49,24 +49,40 @@
 			
   			const vec3 lightDir = vec3(0.577350269, 0.577350269, -0.577350269);
 			const vec3 lightPos = vec3(10.0, 0.0, 0.0);
-			//const vec3 light2Dir
-
+			
 			varying vec3 vPosition;
-
   			uniform vec3 cameraPos;
   			uniform vec3 sphere1Center;
   			uniform vec3 sphere2Center;
   			uniform vec3 sphere3Center;
-
-			struct Plane
-			{
-				vec3 position;				
-				vec3 color;
-				float size;
-				vec3 normal;
-			};
 			
-			uniform Plane plane;
+			//colors for scene
+			vec3 RED = vec3(0.63, 0.06, 0.04);
+			vec3 BLUE = vec3(0.0, 0.0, 0.75);
+			vec3 GREEN = vec3(0.15, 0.48, 0.09);
+			vec3 WHITE = vec3(0.76, 0.75, 0.5);
+			
+			//refraction indices
+			float nAir = 1.0;
+			float nWater = 1.33;
+			
+			struct PointLight
+			{
+				vec3 pos;
+				vec3 col;
+			};
+			uniform PointLight lights[2];
+			
+			const int SPHERE = 0, CUBE = 1;
+			struct Shape
+			{
+				int type;
+				float size;
+				vec3 pos;
+				float reflectance;
+				float transparency;
+			};
+			uniform Shape shapes[2];
 			
 			struct Cube
 			{
@@ -148,18 +164,15 @@
 				{
 					return false;
 				}
-
     				return true;
-			}
+			}		
 
-			
-
- 			bool intersectSphere(vec3 center, vec3 lStart, vec3 lDir, out float dist)
+ 			bool intersectSphere(vec3 center, vec3 lStart, vec3 lDir, float size, out float dist)
 			{
     				//vec3 c = center - lStart;
 				vec3 c = center - lStart;
     				float b = dot(lDir, c);
-    				float d = b*b - dot(c, c) + 1.0;
+    				float d = b*b - dot(c, c) + size;
     				if (d < 0.0) {
       					dist = 10000.0;
       					return false;
@@ -195,58 +208,19 @@
     				float d1, d2, d3, d4;
     				bool h1, h2, h3, h4;
 
-    				h1 = intersectSphere(sphere1Center, lStart, lDir, d1);
-    				h2 = intersectSphere(sphere2Center, lStart, lDir, d2);
-    				h3 = intersectSphere(sphere3Center, lStart, lDir, d3);
-
-				//vec3 pC = plane.position;
-				//vec3 pN = normalize(plane.normal);
-
-				//h4 = intersectPlane(pC, lStart, lDir, pN, d4);
-				//		  (Cube c, vec3 lStart, vec3 lDir, out float dist, out int cubeSide)
+    				h3 = intersectSphere(sphere3Center, lStart, lDir, 1.0, d3);
 				int cSide;
 				h4 = intersectCube(cube, lStart, lDir, d4, cSide);
-				if(h4 && d4 < d1 && d4 < d2 && d4 < d3)
+				if(h4 && d4 < d3)
 				{
 					pos = lStart + d4 * lDir;
 					normal = normalize(cube.n[cSide]);
 					color = cube.c[cSide];
 				}
-    				else if (h1 && d1 < d2 && d1 < d3)
-				{
-      					pos = lStart + d1 * lDir;
-      					normal = normalize(pos - sphere1Center);
-      					color = vec3(0.0, 0.0, 0.9);
-    				}
-    				else if (h2 && d2 < d3)
-				{
-      					pos = lStart + d2 * lDir;
-      					normal = normalize(pos - sphere2Center);
-      					color = vec3(0.9, 0.0, 0.0);
-    				}
     				else if (h3) {
       					pos = lStart + d3 * lDir;
       					normal = normalize(pos - sphere3Center);
       					color = vec3(0.0, 0.9, 0.0);
-    				}
-    				else if (lDir.y < -0.01)
-				{
-     					pos = lStart + ((lStart.y + 2.7) / -lDir.y) * lDir;
-      					if (pos.x*pos.x + pos.z*pos.z > 30.0)
-					{
-        					return false;
-      					}
-
-      					normal = vec3(0.0, 1.0, 0.0);
-
-      					if (fract(pos.x / 5.0) > 0.5 == fract(pos.z / 5.0) > 0.5)
-					{
-        					color = vec3(1.0);
-      					}
-      					else
-					{
-        					color = vec3(0.0);
-      					}
     				}
     				else
 				{
@@ -258,35 +232,22 @@
 
   			void main(void)
   			{
-				//vec3 cPos = vec3(cX, cY, cZ);
     				vec3 cameraDir = normalize(vPosition - cameraPos);
-				//vec3 cameraDir = normalize(vPosition - cPos);
 
     				vec3 p1, norm, p2;
     				vec3 col, colT, colM, col3;
    				if (intersectWorld(cameraPos, cameraDir, p1, norm, colT))
 				{
       					col = lightAt(norm, -cameraDir, p1, colT);
-      					colM = (colT + vec3(0.7)) / 1.7;
-      					//cameraDir = reflect(cameraDir, norm);
-      					/*if (intersectWorld(p1, cameraDir, p2, norm, colT))
-					{
-        					col += lightAt(norm, -cameraDir, colT) * colM;
-        					colM *= (colT + vec3(0.7)) / 1.7;
-        					cameraDir = reflect(cameraDir, norm);
-        					if (intersectWorld(p2, cameraDir, p1, norm, colT))
-						{
-          						col += lightAt(norm, -cameraDir, colT) * colM;
-        					}
-      					}*/
       					gl_FragColor = vec4(col, 1.0);
     				}
     				else
 				{
       					gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
-    				}				
+    				}	
  			}
 		</script>
+		
 		<!--***VERTEX SHADER TEXTURE***-->
 		<script id="vertex_shader_texture" type="x-shader/x-vertex">
 
@@ -297,7 +258,6 @@
 			void main() {
 				vPosition =  aPlotPosition;
 				gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
-				//gl_Position = vec4(aPlotPosition,1);
 			}
 
 		</script>
@@ -351,7 +311,7 @@
 
 			var delta = 0.01;
 
-			var PLANE = 1, SPHERE = 0;
+			var SPHERE = 0, CUBE = 1;
 
 			var mesh1, mesh2;
 
@@ -407,25 +367,23 @@
 				//txtre to render to
 				rtTexture = new THREE.WebGLRenderTarget( 512, 512, { minFilter: THREE.LinearFilter, magFilter: THREE.NearestFilter, format: THREE.RGBFormat } );
 				
-				uniforms = {
-					//--plane
-					"plane.position": {
-						type: 'fv', // vec3
-						value: [0, 0, 2]
+				uniforms =
+				{
+					/**********************************************************/
+					//shapes
+					"shape[0].type": {
+						type: 'i',
+						value: SPHERE						
 					},
-					"plane.color": {
-						type: 'fv', // vec3
-						value: [1, 1, 0]
+					"shape[0].size": {
+						type: 'f',
+						value: 1
 					},
-					"plane.size": {
-						type: 'f', // float
-						value: 3.0
-					},
-					"plane.normal": {
-						type: 'fv', // vec3
-						value: [0,1,-1]
-					},
-			
+					"shape[0].pos": {
+						type: 'fv',
+						value: [0, 0, 0]
+					},					
+					/**********************************************************/
 					cameraPos: {
 						type: 'fv', // vec3
 						value: [0, 0, 0]
