@@ -48,7 +48,7 @@
 			bool intersectPlane(vec3 center, float size, vec3 lStart, vec3 lDir, vec3 n, out float dist);
 			
   			const vec3 lightDir = vec3(0.577350269, 0.577350269, -0.577350269);
-			const vec3 lightPos = vec3(10.0, 0.0, 0.0);
+			const vec3 lightPos = vec3(-10.0, 0.0, 0.0);
 			
 			varying vec3 vPosition;
   			uniform vec3 cameraPos;
@@ -57,29 +57,32 @@
   			uniform vec3 sphere3Center;
 			
 			//colors for scene
-			vec3 RED = vec3(0.63, 0.06, 0.04);
+			/*vec3 RED = vec3(0.63, 0.06, 0.04);
 			vec3 BLUE = vec3(0.0, 0.0, 0.75);
 			vec3 GREEN = vec3(0.15, 0.48, 0.09);
-			vec3 WHITE = vec3(0.76, 0.75, 0.5);
+			vec3 WHITE = vec3(0.76, 0.75, 0.5);*/
 			
-			//cube normals
-			vec3 nTop = vec3(0.0, 1.0, 0.0);
-			vec3 nBottom = vec3(0.0, -1.0, 0.0);
-			vec3 nRight = vec3(1.0, 0.0, 0.0);
-			vec3 nLeft = vec3(-1.0, 0.0, 0.0);
-			vec3 nFront = vec3(0.0, 0.0, 1.0);
-			vec3 nBack = vec3(0.0, 0.0, -1.0);			
+			//int test[1];
+			//test[0] = 2;
+			
+			//cube norms
+			uniform vec3 norms[6];
+			
+			//cube colors
+			uniform vec3 colors[6];	
 			
 			//refraction indices
 			float nAir = 1.0;
 			float nWater = 1.33;
+			
+			const int NUM_LIGHTS = 2;
 			
 			struct PointLight
 			{
 				vec3 pos;
 				vec3 col;
 			};
-			uniform PointLight lights[2];
+			uniform PointLight lights[NUM_LIGHTS];
 			
 			const int SPHERE = 0, CUBE = 1;
 			struct Shape
@@ -92,25 +95,16 @@
 			};
 			uniform Shape shapes[2];
 			
-			struct Cube
-			{
-				vec3 pos;
-				float s;
-				vec3 n[6];
-				vec3 c[6];
-			};
 			
-			uniform Cube cube;
-			
-			bool intersectCube(Cube c, vec3 lStart, vec3 lDir, out float dist, out int cubeSide)
+			bool intersectCube(int s, vec3 lStart, vec3 lDir, out float dist, out int cubeSide)
 			{
 				//calc pos of all sides
 				vec3 side[6];
 				for(int i = 0; i < 6; i++){
-					side[i] = c.pos;
+					side[i] = shapes[s].pos;
 				}
 				
-				float size = c.s;
+				float size = shapes[s].size;
 				
 				side[0].y += size;
 				side[1].y -= size;
@@ -124,7 +118,7 @@
 				
 				for (int i = 0; i < 6; i++)
 				{
-					if (intersectPlane(side[i], c.s, lStart, lDir, c.n[i], cD))
+					if (intersectPlane(side[i], size, lStart, lDir, norms[i], cD))
 					{
 						if (cD < d)
 						{
@@ -175,12 +169,12 @@
     				return true;
 			}		
 
- 			bool intersectSphere(vec3 center, vec3 lStart, vec3 lDir, float size, out float dist)
+ 			bool intersectSphere(int s, vec3 lStart, vec3 lDir, out float dist)
 			{
     				//vec3 c = center - lStart;
-				vec3 c = center - lStart;
+				vec3 c = shapes[s].pos - lStart;
     				float b = dot(lDir, c);
-    				float d = b*b - dot(c, c) + size;
+    				float d = b*b - dot(c, c) + shapes[s].size;
     				if (d < 0.0) {
       					dist = 10000.0;
       					return false;
@@ -216,14 +210,14 @@
     				float d1, d2, d3, d4;
     				bool h1, h2, h3, h4;
 
-    				h3 = intersectSphere(sphere3Center, lStart, lDir, 1.0, d3);
+    				h3 = intersectSphere(1, lStart, lDir, d3);
 				int cSide;
-				h4 = intersectCube(cube, lStart, lDir, d4, cSide);
+				h4 = intersectCube(0, lStart, lDir, d4, cSide);
 				if(h4 && d4 < d3)
 				{
 					pos = lStart + d4 * lDir;
-					normal = normalize(cube.n[cSide]);
-					color = cube.c[cSide];
+					normal = normalize(norms[cSide]);
+					color = colors[cSide];
 				}
     				else if (h3) {
       					pos = lStart + d3 * lDir;
@@ -253,6 +247,7 @@
 				{
       					gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
     				}	
+				//gl_FragColor = vec4(shapes[0].size, 0.0, 0.0, 1.0);
  			}
 		</script>
 		
@@ -378,19 +373,116 @@
 				uniforms =
 				{
 					/**********************************************************/
-					//shapes
-					"shape[0].type": {
+					//--shapes
+					//sphere
+					"shapes[0].type": {
 						type: 'i',
-						value: SPHERE						
+						value: CUBE						
 					},
-					"shape[0].size": {
+					"shapes[0].size": {
 						type: 'f',
-						value: 1
+						value: 1.0
 					},
-					"shape[0].pos": {
+					"shapes[0].pos": {
+						type: 'fv',
+						value: [3, 0, 0]
+					},
+					"shapes[0].reflectance": {
+						type: 'f',
+						value: 0.0
+					},
+					"shapes[0].transparency": {
+						type: 'f',
+						value: 1.0
+					},
+					//cube
+					"shapes[1].type": {
+						type: 'i',
+						value: CUBE						
+					},
+					"shapes[1].size": {
+						type: 'f',
+						value: 1.0
+					},
+					"shapes[1].pos": {
 						type: 'fv',
 						value: [0, 0, 0]
-					},					
+					},
+					"shapes[1].reflectance": {
+						type: 'f',
+						value: 0.0
+					},
+					"shapes[1].transparency": {
+						type: 'f',
+						value: 1.0
+					},
+					//--normals
+					"norms[0]": {
+						type: 'fv',
+						value: [0, 1, 0]
+					},
+					"norms[1]": {
+						type: 'fv',
+						value: [0, -1, 0]
+					},
+					"norms[2]": {
+						type: 'fv',
+						value: [1, 0, 0]
+					},
+					"norms[3]": {
+						type: 'fv',
+						value: [-1, 0, 0]
+					},
+					"norms[4]": {
+						type: 'fv',
+						value: [0, 0, 1]
+					},
+					"norms[5]": {
+						type: 'fv',
+						value: [0, 0, -1]
+					},
+					//face colors
+					"colors[0]": {
+						type: 'fv',
+						value: [0.76, 0.75, 0.5]
+					},
+					"colors[1]": {
+						type: 'fv',
+						value: [0.76, 0.75, 0.5]
+					},
+					"colors[2]": {
+						type: 'fv',
+						value: [0.63, 0.06, 0.04]
+					},
+					"colors[3]": {
+						type: 'fv',
+						value: [0.15, 0.48, 0.09]
+					},
+					"colors[4]": {
+						type: 'fv',
+						value: [0.76, 0.75, 0.5]
+					},
+					"colors[5]": {
+						type: 'fv',
+						value: [0.76, 0.75, 0.5]
+					},
+					//--lights
+					"lights[0].pos": {
+						type: 'fv',
+						value: [10.0, 0.0, 0.0]
+					},
+					"lights[0].col": {
+						type: 'fv',
+						value: [1.0, 1.0, 1.0]
+					},
+					"lights[1].pos": {
+						type: 'fv',
+						value: [-10.0, 0.0, 0.0]
+					},
+					"lights[1].col": {
+						type: 'fv',
+						value: [1.0, 1.0, 1.0]
+					},
 					/**********************************************************/
 					cameraPos: {
 						type: 'fv', // vec3
@@ -408,69 +500,6 @@
 						type: 'fv', // vec3
 						value: [0, 0, 0]
 					},
-					/**********************************************************/
-					//--cube
-					"cube.pos": {
-						type: 'fv',
-						value: [0, 2, 0]
-					},
-					//size
-					"cube.s": {
-						type: 'f',
-						value: 1.0
-					},
-					//normals
-					"cube.n[0]": {
-						type: 'fv',
-						value: [0, 1, 0]
-					},
-					"cube.n[1]": {
-						type: 'fv',
-						value: [0, -1, 0]
-					},
-					"cube.n[2]": {
-						type: 'fv',
-						value: [1, 0, 0]
-					},
-					"cube.n[3]": {
-						type: 'fv',
-						value: [-1, 0, 0]
-					},
-					"cube.n[4]": {
-						type: 'fv',
-						value: [0, 0, 1]
-					},
-					"cube.n[5]": {
-						type: 'fv',
-						value: [0, 0, -1]
-					},
-					
-					//face colors
-					"cube.c[0]": {
-						type: 'fv',
-						value: [1, 0, 0]
-					},
-					"cube.c[1]": {
-						type: 'fv',
-						value: [0, 1, 0]
-					},
-					"cube.c[2]": {
-						type: 'fv',
-						value: [0, 0, 1]
-					},
-					"cube.c[3]": {
-						type: 'fv',
-						value: [1, 1, 0]
-					},
-					"cube.c[4]": {
-						type: 'fv',
-						value: [0, 1, 1]
-					},
-					"cube.c[5]": {
-						type: 'fv',
-						value: [1, 0, 1]
-					},
-					/**********************************************************/
 				};			
 
 				attributes = {
