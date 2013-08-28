@@ -49,7 +49,7 @@
 			
   			const vec3 lightDir = vec3(0.577350269, 0.577350269, -0.577350269);
 			const vec3 lightPos = vec3(-10.0, 0.0, 0.0);
-			const vec3 ambientLight = vec3(0.3, 0.3, 0.3);
+			const vec3 ambientLight = vec3(1.0, 1.0, 1.0);
 			
 			varying vec3 vPosition;
   			uniform vec3 cameraPos;
@@ -100,6 +100,8 @@
 			
 			bool intersectCube(int s, vec3 lStart, vec3 lDir, out float dist, out int cubeSide)
 			{
+				cubeSide = -1;
+				
 				//calc pos of all sides
 				vec3 side[6];
 				for(int i = 0; i < 6; i++){
@@ -176,24 +178,75 @@
     				return true;
 			}		
 
- 			bool intersectSphere(int s, vec3 lStart, vec3 lDir, out float dist)
+ 			bool intersectSphere(int s, vec3 rStart, vec3 rDir, out float dist)
 			{
     				//vec3 c = center - lStart;
-				vec3 c = shapes[s].pos - lStart;
-    				float b = dot(lDir, c);
+				vec3 c = shapes[s].pos - rStart;
+    				float b = dot(rDir, c);
     				float d = b*b - dot(c, c) + shapes[s].size;
     				if (d < 0.0) {
       					dist = 10000.0;
       					return false;
     				}
 
-    				dist = b - sqrt(d);
-    				if (dist < 0.0) {
+    				float t1 = b - sqrt(d);
+				float t2 = b + sqrt(d);
+				
+				if (t1 > 0.0 && t2 > 0.0) {
+					if (t1 < t2)
+					{
+						dist = t1;
+					}
+					else
+					{
+						dist = t2;
+					}
+				}
+				if ((t1 < 0.0 && t2 > 0.0) || (t1 > 0.0 && t2 < 0.0))
+				{
+					if (t1 > t2)
+					{
+						dist = t1;
+					}
+					else
+					{
+						dist = t2;
+					}
+				}
+				
+				/*if (t1 < t2 && t1 > 0.0)
+				{
+					dist = t1;
+				}
+				else if (t2 < t1 && t2 > 0.0)
+				{
+					dist = t2;
+				}
+				else
+				{
+					return false;
+				}*/
+				
+    				/*if (dist < 0.0) {
       					dist = 10000.0;
       					return false;
-    				}
+    				}*/
+				/*vec3 toC = rStart - shapes[s].pos;
+				vec3 a = dot(rdir, rdir);
+				vec3 b = 2 * dot(rDir, toC);
+				vec3 c = dot(toC, toC) - shapes[s].size;
+				
+				//no intersection
+				if (b*b < c)
+				{
+					return false;
+				}
+				
+				//?which distance to return
+				float d1 = -b + sqrt(c);
+				float d2 = -b - sqrt(c);//closest*/
 
-					return true;
+				return true;
   			}		
 			
 			int intersectScene(vec3 rStart, vec3 rDir, out vec3 pos, out int cubeSide)
@@ -285,7 +338,7 @@
 						continue;
 					}
 					//bolor black if position obstructed from light
-					if((intersectScene((pos + 0.01*n), lDir)) < dist)//add 0.01 for if ray orgin in plane
+					if((intersectScene((pos + 0.2*n), lDir)) < dist)//add 0.01 for if ray orgin in plane
 					{
 						//return vec3(0.0, 0.0, 0.0);
 						continue;
@@ -300,7 +353,7 @@
 				return color;
 			}
 			
-			vec3 refDir(float n1, float n2, vec3 norm, vec3 i)
+			vec3 refrDir(float n1, float n2, vec3 norm, vec3 i)
 			{
 				float n = n1/n2;
 				float cosI = dot(-i, norm);
@@ -314,16 +367,15 @@
 				return vec3(0.0, 0.0, 0.0);
 			}
 			
-			float schlickApprox(float n1, float n2, vec3 norm, vec3 i)
+			float fresnel(float n1, float n2, vec3 norm, vec3 i)//schlick's approx
 			{
 				float ref = (n1-n2)/(n1+n2);
 				ref *= ref;
-				float cosI = dot(-i, norm);
-				float cosX;
+				float cosX = dot(-i, norm);
 				if (n1 > n2)
 				{
 					float n = n1/n2;
-					float sin2T = n * n * (1.0-cosI * cosI);
+					float sin2T = n * n * (1.0-cosX * cosX);
 					if (sin2T > 1.0)
 					{
 						return 1.0;
@@ -337,8 +389,8 @@
   			void main(void)
   			{
 				vec3 cameraDir = normalize(vPosition - cameraPos);
-				vec3 pos, n, c, refl, refr;
-				float schlick;
+				vec3 pos, n, nO, c, cO, surfC, reflC, refrC = vec3(0.0, 0.0, 0.0), reflD, refrD;
+				float f;
 				int s = -1, cSide = -1;
 				s = intersectScene(cameraPos, cameraDir, pos, cSide);
 				
@@ -346,43 +398,101 @@
 				if (s > -1)
 				{
 					if (shapes[s].type == SPHERE) {
-						n = normalize(pos - shapes[s].pos);
-						c = shapes[s].diffuse;
+						n = nO = normalize(pos - shapes[s].pos);
+						c = cO = shapes[s].diffuse;
 					}
 					if (shapes[s].type == CUBE) {
-						n = norms[cSide];
-						c = colors[cSide];
+						n = nO = norms[cSide];
+						c = cO = colors[cSide];
 					}
 					
+					surfC = colorAt(s, pos, n, c);
+					
 					//transperency & reflectivity
-					if (shapes[s].reflectance > 0.0) {						 
+					if (shapes[s].reflectance > 0.0)
+					{
+						vec3 reflPos;
+						int reflS;
 						//compute reflection direction
-						refl = reflect(cameraDir, n);
-						
-						//intersect scene again
-						
-						/*if (shapes[s].transparency > 0.0)
+						reflD = reflect(cameraDir, nO);
+						reflS = intersectScene(pos+0.01*n, reflD, reflPos, cSide);
+						if (reflS > -1)
 						{
-							//compute refraction dir
-							refr = refDir(1.0, 1.33, n, cameraDir);
-							
-							//intersect scene again
-							vec3 newPos;
-							int newCside;
-							s = intersectScene(pos, refr, newPos, newCside);
-							
-							if (shapes[s].type == SPHERE)
+							if (shapes[reflS].type == SPHERE)
 							{
-								n = normalize(pos - shapes[s].pos);
-								c = shapes[s].diffuse;
+								n = normalize(reflPos - shapes[reflS].pos);
+								c = shapes[reflS].diffuse;
 							}
-							if (shapes[s].type == CUBE) {
+							if (shapes[reflS].type == CUBE)
+							{
 								n = norms[cSide];
 								c = colors[cSide];
 							}							
-						}*/
-					}					
-					gl_FragColor = vec4(colorAt(s, pos, n, c), 1.0);
+							reflC = colorAt(reflS, reflPos, n, c) * shapes[s].reflectance;
+						}				
+																	
+						if (shapes[s].transparency > 0.0)
+						{
+							//compute refraction dir
+							refrD = refrDir(1.0, 1.33, nO, (cameraDir));
+							
+							//intersect scene
+							vec3 refrD2, refrPos, refrPos2;
+							int refrS;
+							refrS = intersectScene(pos+nO*-0.01, refrD, refrPos, cSide);
+							
+							//refrC = vec3(1.0, 0.0, 0.0);//colorAt(refrS, refrPos, n, c) * shapes[s].transparency;
+							//refrC = refrD;
+							//refrC = cameraDir;
+							
+							if (refrS > -1)
+							{
+								//assuming inside so inverting norms
+								if (shapes[refrS].type == SPHERE)
+								{
+									n = -1.0 *normalize(refrPos - shapes[refrS].pos);//inverted norm
+									c = shapes[refrS].diffuse;
+									//refrC = vec3(1.0, 0.0, 0.0);
+								}
+								if (shapes[refrS].type == CUBE) {//inverted norm
+									n = -1.0 * norms[cSide];
+									c = colors[cSide];
+									//refrC = vec3(0.0, 0.0, 1.0);
+								}
+								
+								//refrC = vec3(1.0, 0.0, 0.0);//colorAt(refrS, refrPos, n, c) * shapes[s].transparency;
+								
+								//compute refrac direction
+								refrD2 = refrDir(1.33, 1.0, n, refrD);
+								//intersect scene again
+								refrS = intersectScene(refrPos - n*0.01, refrD2, refrPos2, cSide);
+								
+								if (refrS > -1)
+								{
+									if (shapes[refrS].type == SPHERE)
+									{
+										n = normalize(shapes[refrS].pos - refrPos2);
+										c = shapes[refrS].diffuse;
+										//refrC = vec3(1.0, 0.0, 0.0);
+									}
+									if (shapes[refrS].type == CUBE) {
+										n = norms[cSide];
+										c = colors[cSide];
+										//refrC = vec3(0.0, 0.0, 1.0);
+									}
+									refrC = colorAt(refrS, refrPos2, n, c) * shapes[s].transparency;
+								}
+							}
+						}
+					}
+					//compute fresnel
+					f = fresnel(1.0, 1.33, nO, cameraDir);
+					vec3 finalC = ((f)*reflC + (1.0-f)*refrC) + surfC;
+					//gl_FragColor = vec4(surfC, 1.0);
+					//gl_FragColor = vec4(reflC, 1.0);
+					//gl_FragColor = vec4(refrC, 1.0);					
+					gl_FragColor = vec4(finalC, 1.0);
+					//gl_FragColor = vec4((f), 0.0, 0.0, 1.0);
 				}
 				else
 				{
@@ -525,7 +635,7 @@
 					},
 					"shapes[0].pos": {
 						type: 'fv',
-						value: [-1.0, 1.5, 0.0]
+						value: [-1.0, 1.5, 0.0]//[1.0, 0.0, 0.0]
 					},
 					"shapes[0].diffuse": {
 						type: 'fv',
@@ -537,7 +647,7 @@
 					},
 					"shapes[0].transparency": {
 						type: 'f',
-						value: 1.0
+						value: 0.0
 					},
 					//cube
 					"shapes[1].type": {
@@ -554,11 +664,11 @@
 					},
 					"shapes[1].diffuse": {
 						type: 'fv',
-						value: [1, 0, 0]
+						value: [.3, 0, 0]
 					},
 					"shapes[1].reflectance": {
 						type: 'f',
-						value: 0.0
+						value: 1.0
 					},
 					"shapes[1].transparency": {
 						type: 'f',
@@ -600,7 +710,8 @@
 					},
 					"colors[2]": {
 						type: 'fv',
-						value: [0.63, 0.06, 0.04]
+						//value: [0.63, 0.06, 0.04]
+						value: [1.0, 0.06, 1.0]
 					},
 					"colors[3]": {
 						type: 'fv',
