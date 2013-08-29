@@ -155,6 +155,13 @@
 				vec3 p0 = center;
 
 				dist = 0.0;
+				
+				//if not facing view dir not visible
+				float lamb = dot(lDir, n);
+				if (lamb > 0.0)
+				{
+					return false;
+				}
 
 				float denom = dot(l, n);
 				if(denom == 0.0) return false;
@@ -324,7 +331,7 @@
 			{
 				vec3 color = vec3(0.0, 0.0, 0.0);
 				//calc lighting
-				for (int i = 0; i < 1; i++) /*********************only using one light for now***************/
+				for (int i = 0; i < 2; i++) /*********************only using one light for now***************/
 				{
 					
 					vec3 lDir = (lights[i].pos - pos);
@@ -386,6 +393,22 @@
 				return ref + (1.0-ref) * x * x * x * x * x;
 			}
 			
+			/*float reflectance(float n1, float n2, vec3 norm, vec3 i)
+			{
+				float n = n1/n2;
+				float cosI = -dot(norm, i);
+				float sinT2 = n*n*(1.0-cosI*cosI);
+				if (sinT2 >1.0)
+				{
+					return 1.0;
+				}
+				float cosT = sqrt(1.0-sinT2);
+				float rOrth = (n1*cosI-n2*cosT)/(n1*cosI+n2*cosT);
+				float rPar = (n2*cosI-n1*cosT)/(n2*cosI+n1*cosT);
+				return (rOrth*rOrth + rPar*rPar)/2.0;
+				return 1.0;
+			}*/
+			
   			void main(void)
   			{
 				vec3 cameraDir = normalize(vPosition - cameraPos);
@@ -428,7 +451,7 @@
 								n = norms[cSide];
 								c = colors[cSide];
 							}							
-							reflC = colorAt(reflS, reflPos, n, c) * shapes[s].reflectance;
+							reflC = colorAt(reflS, reflPos, n, c);
 						}				
 																	
 						if (shapes[s].transparency > 0.0)
@@ -480,18 +503,20 @@
 										c = colors[cSide];
 										//refrC = vec3(0.0, 0.0, 1.0);
 									}
-									refrC = colorAt(refrS, refrPos2, n, c) * shapes[s].transparency;
+									refrC = colorAt(refrS, refrPos2, n, c);
 								}
 							}
 						}
 					}
 					//compute fresnel
-					f = fresnel(1.0, 1.33, nO, cameraDir);
-					vec3 finalC = ((f)*reflC + (1.0-f)*refrC) + surfC;
-					//gl_FragColor = vec4(surfC, 1.0);
+					f = fresnel(1.0, 1.1, nO, cameraDir);
+					//float r = reflectance(1.0, 1.33, nO, cameraDir);
+					//vec3 finalC = ((f)*reflC*shapes[s].reflectance + (1.0-f)*refrC*shapes[s].transparency) + surfC;
+					//vec3 finalC = ((f)*reflC + (1.0-f)*refrC) + surfC;
+					gl_FragColor = vec4(surfC, 1.0);
 					//gl_FragColor = vec4(reflC, 1.0);
 					//gl_FragColor = vec4(refrC, 1.0);					
-					gl_FragColor = vec4(finalC, 1.0);
+					//gl_FragColor = vec4(finalC, 1.0);
 					//gl_FragColor = vec4((f), 0.0, 0.0, 1.0);
 				}
 				else
@@ -555,7 +580,7 @@
 			var w = 3.2;
 			var h = 2;
 			
-			var camOffset = -5;
+			var camOffset = -.5;
 			
 			var wWidth = window.innerWidth;
 			var wHeight = window.innerHeight;			
@@ -608,7 +633,7 @@
 				
 				/*moving camera*/
 				camera = new THREE.OrthographicCamera( w / - 2, w / 2, h  / 2, h / - 2, -10000, 10000 );
-				camera.position.z = 20;
+				camera.position.z = 15;
 				
 				//controls
 				controls = new THREE.TrackballControls( camera, renderer.domElement );
@@ -631,15 +656,15 @@
 					},
 					"shapes[0].size": {
 						type: 'f',
-						value: 1.0
+						value: 6.0
 					},
 					"shapes[0].pos": {
 						type: 'fv',
-						value: [-1.0, 1.5, 0.0]//[1.0, 0.0, 0.0]
+						value: [0.5, 0.5, 0.5]//[-1.0, 0.75, 0.0]//[0.5, 0.5, 0.5]//
 					},
 					"shapes[0].diffuse": {
 						type: 'fv',
-						value: [0, 1, 0]
+						value: [.3, 0, 0]
 					},
 					"shapes[0].reflectance": {
 						type: 'f',
@@ -660,7 +685,7 @@
 					},
 					"shapes[1].pos": {
 						type: 'fv',
-						value: [2, 0, 0]
+						value: [0, 0, 0]
 					},
 					"shapes[1].diffuse": {
 						type: 'fv',
@@ -677,27 +702,27 @@
 					//--normals
 					"norms[0]": {
 						type: 'fv',
-						value: [0, 1, 0]
+						value: [0, -1, 0]
 					},
 					"norms[1]": {
 						type: 'fv',
-						value: [0, -1, 0]
+						value: [0, 1, 0]
 					},
 					"norms[2]": {
 						type: 'fv',
-						value: [1, 0, 0]
+						value: [-1, 0, 0]
 					},
 					"norms[3]": {
 						type: 'fv',
-						value: [-1, 0, 0]
+						value: [1, 0, 0]
 					},
 					"norms[4]": {
 						type: 'fv',
-						value: [0, 0, 1]
+						value: [0, 0, -1]
 					},
 					"norms[5]": {
 						type: 'fv',
-						value: [0, 0, -1]
+						value: [0, 0, 1]
 					},
 					//face colors
 					"colors[0]": {
@@ -710,8 +735,10 @@
 					},
 					"colors[2]": {
 						type: 'fv',
-						//value: [0.63, 0.06, 0.04]
-						value: [1.0, 0.06, 1.0]
+						value: [0.63, 0.06, 0.04]
+						//value: [1.0, 0.06, 1.0]
+						//value: [0.3, 0, 0]
+						//value: [0.76, 0.75, 0.5]
 					},
 					"colors[3]": {
 						type: 'fv',
@@ -728,7 +755,7 @@
 					//--lights
 					"lights[0].pos": {
 						type: 'fv',
-						value: [-10, 0, 0]
+						value: [10, 0, 0]
 					},
 					"lights[0].col": {
 						type: 'fv',
@@ -736,7 +763,7 @@
 					},
 					"lights[1].pos": {
 						type: 'fv',
-						value: [10.0, 0.0, 0.0]
+						value: [-10.0, 0.0, 0.0]
 					},
 					"lights[1].col": {
 						type: 'fv',
@@ -830,19 +857,18 @@
 				cRightT.add(camera.position);
 				cRightB.add(camera.position);
 
-				dUL = cLeftT.distanceTo(camera.position);
+				/*dUL = cLeftT.distanceTo(camera.position);
 				dUR = cRightT.distanceTo(camera.position);
 				dBL = cLeftB.distanceTo(camera.position);
-				dBR = cRightB.distanceTo(camera.position);
+				dBR = cRightB.distanceTo(camera.position);*/
 				
    				camP = { 
 					x: camera.position.x,
 					y: camera.position.y,
 					z: camera.position.z,
-				};
-		
+				};		
 			
-				var offset = 6;
+				var offset = 2.0;
 				lookDir = normalize(vectSub(origin, camP));
 				camRight = normalize(crossProd(lookDir, camUp));
 				up = normalize(crossProd(camRight, lookDir));
@@ -850,8 +876,7 @@
 				uR = vectAdd(vectAdd(center, up), vectMul(camRight, ratio));
 				bR = vectAdd(vectSub(center, up), vectMul(camRight, ratio));
 				uL = vectSub(vectAdd(center, up), vectMul(camRight, ratio));
-				bL = vectSub(vectSub(center, up), vectMul(camRight, ratio));
-	
+				bL = vectSub(vectSub(center, up), vectMul(camRight, ratio));	
 				
 				uniforms.cameraPos.value = [camP.x, camP.y, camP.z];
 				
