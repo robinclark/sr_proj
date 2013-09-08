@@ -219,6 +219,10 @@
 						dist = t2;
 					}
 				}
+				if((t1 < 0.0) && (t2 < 0.0))
+				{
+					return false;
+				}
 
 				return true;
   			}		
@@ -316,7 +320,7 @@
 						continue;
 					}
 					//color black if position obstructed from light
-					if((intersectScene((pos + 0.2*n), lDir)) < dist)//add 0.01 for if ray orgin in plane
+					if((intersectScene((pos + 0.01*n), lDir)) < dist)//add 0.01 for if ray orgin in plane
 					{
 						//return vec3(0.0, 0.0, 0.0);
 						continue;
@@ -423,7 +427,7 @@
   			void main(void)
   			{
 				vec3 cameraDir = normalize(vPosition - cameraPos);
-				vec3 pos, n, nO, c, cO, surfC, reflD, reflC, reflP, refrD, refrC,refrP;
+				vec3 pos, n, nO, c, cO, surfC, reflD, reflC = vec3(0.0, 0.0, 0.0), reflP, refrD, refrC,refrP;
 				bool hit = false;
 				int cSide = -1;
 				Shape surfShape, reflShape, refrShape;
@@ -438,7 +442,7 @@
 					//surface color
 					if (surfShape.type == SPHERE)
 					{
-						n = (pos - currentShape.pos);
+						n = normalize(pos - currentShape.pos);
 						c = currentShape.diffuse;
 					}
 					if (surfShape.type == CUBE)
@@ -448,6 +452,7 @@
 					
 					surfC = colorAt(c, pos, n);
 					
+					vec3 nC;
 					//reflection color
 					if (surfShape.reflectance > 0.0)
 					{
@@ -455,17 +460,18 @@
 						reflD = reflect(cameraDir, n);
 						if (intersectScene(pos + 0.01*n, reflD, reflP, cSide))
 						{
-							reflShape = currentShape;
+							/*reflShape = currentShape;
 							if (reflShape.type == SPHERE)
 							{
 								n = (reflP - reflShape.pos);
-								c = vec3(0.0, 1.0, 0.0);
+								nC = vec3(0.0, 0.0, 1.0);
 							}
 							if (reflShape.type == CUBE)
 							{
-								cubeNormAndColor(cSide, n, c);		
-							}
-							reflC = colorAt(c, reflP, n);
+								cubeNormAndColor(cSide, n, nC);		
+							}*/
+							//reflC = colorAt(nC, reflP, n);
+							reflC = vec3(0.0, 1.0, 0.0);
 						}
 					}
 					
@@ -476,17 +482,12 @@
 					}
 					
 					//gl_FragColor = vec4(colorAt(currentShape.diffuse, pos, n), 1.0);
+					gl_FragColor = vec4(reflC, 1.0);
 				}
 				else
 				{
       					gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
     				}
-				
-				
-				//int x = 0;
-				//vec3 a = norms[x];
-				//gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
-				gl_FragColor = vec4(reflC, 1.0);
  			}
 		</script>
 		
@@ -666,27 +667,27 @@
 					//--normals
 					"norms[0]": {
 						type: 'fv',
-						value: [0, -1, 0]
+						value: [0, 1, 0]
 					},
 					"norms[1]": {
 						type: 'fv',
-						value: [0, 1, 0]
+						value: [0, -1, 0]
 					},
 					"norms[2]": {
 						type: 'fv',
-						value: [-1, 0, 0]
+						value: [1, 0, 0]
 					},
 					"norms[3]": {
 						type: 'fv',
-						value: [1, 0, 0]
+						value: [-1, 0, 0]
 					},
 					"norms[4]": {
 						type: 'fv',
-						value: [0, 0, -1]
+						value: [0, 0, 1]
 					},
 					"norms[5]": {
 						type: 'fv',
-						value: [0, 0, 1]
+						value: [0, 0, -1]
 					},
 					//face colors
 					"colors[0]": {
