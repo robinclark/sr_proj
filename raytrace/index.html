@@ -516,10 +516,10 @@
 					}
 					
 					//float fresnel(float n1, float n2, vec3 norm, vec3 i)//schlick's approx
-					float f = fresnel(1.0, 1.33, sN, cameraDir);
-					vec3 finalC = (f*reflC*surfShape.reflectance + (1.0-f)*refrC*surfShape.transparency) + surfC;
+					//float f = fresnel(1.0, 1.33, sN, cameraDir);
+					//vec3 finalC = (f*reflC*surfShape.reflectance + (1.0-f)*refrC*surfShape.transparency) + surfC;
 					//gl_FragColor = vec4(f, 0.0, 0.0 1.0);
-					gl_FragColor = vec4(finalC, 1.0);
+					gl_FragColor = vec4(surfC, 1.0);
 				}
 				else
 				{
