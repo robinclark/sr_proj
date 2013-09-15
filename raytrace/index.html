@@ -45,38 +45,14 @@
 		<script id="fragment_shader_texture" type="x-shader/x-fragment">
 			precision mediump float;
 			
-			bool intersectPlane(vec3 center, float size, vec3 lStart, vec3 lDir, vec3 n, out float dist);
-			
-  			const vec3 lightDir = vec3(0.577350269, 0.577350269, -0.577350269);
-			const vec3 lightPos = vec3(-10.0, 0.0, 0.0);
-			const vec3 ambientLight = vec3(1.0, 1.0, 1.0);
-			
 			varying vec3 vPosition;
   			uniform vec3 cameraPos;
-  			uniform vec3 sphere1Center;
-  			uniform vec3 sphere2Center;
-  			uniform vec3 sphere3Center;
 			
-			//colors for scene
-			/*vec3 RED = vec3(0.63, 0.06, 0.04);
-			vec3 BLUE = vec3(0.0, 0.0, 0.75);
-			vec3 GREEN = vec3(0.15, 0.48, 0.09);
-			vec3 WHITE = vec3(0.76, 0.75, 0.5);*/
+			bool intersectPlane(vec3 center, float size, vec3 n, vec3 lStart, vec3 lDir, out float dist);
+			const vec3 ambientLight = vec3(1.0, 1.0, 1.0);		
 			
-			//int test[1];
-			//test[0] = 2;
-			
-			//cube norms
-			uniform vec3 norms[6];
-			
-			//cube colors
-			uniform vec3 colors[6];	
-			
-			//refraction indices
-			float nAir = 1.0;
-			float nWater = 1.33;
-			
-			const int NUM_LIGHTS = 2, NUM_SHAPES = 2;
+			const int NUM_LIGHTS = 2;
+			const int NUM_SHAPES = 6;
 			
 			struct PointLight
 			{
@@ -86,63 +62,21 @@
 			uniform PointLight lights[NUM_LIGHTS];
 			
 			const int SPHERE = 0;
-			const int CUBE = 1;
+			const int PLANE = 1;
 			struct Shape
 			{
-				int type;
-				float size;
 				vec3 pos;
-				vec3 diffuse;
+				vec3 norm;
+				vec3 diffuse;				
 				float reflectance;
 				float transparency;
+				float size;
+				int  type;
 			}currentShape;
-			uniform Shape shapes[2];
+			uniform Shape shapes[NUM_SHAPES];
 			
-			
-			bool intersectCube(float size, vec3 pos, vec3 lStart, vec3 lDir, out float dist, out int cubeSide)
-			{
-				cubeSide = -1;
-				
-				//calc pos of all sides
-				vec3 side[6];
-				for(int i = 0; i < 6; i++){
-					side[i] = pos;
-				}
-				
-				//float size = shapes[s].size;
-				side[0].y += size;
-				side[1].y -= size;
-				side[2].x += size;
-				side[3].x -= size;
-				side[4].z += size;
-				side[5].z -= size;
-				
-				//check intersection for each side
-				float d = 10000.0, cD = 10000.0;
-				
-				for (int i = 0; i < 6; i++)
-				{
-					if (intersectPlane(side[i], size, lStart, lDir, norms[i], cD))
-					{
-						if (cD < d)
-						{
-							d = cD;
-							cubeSide = i;
-						}
-					}
-				}
-				
-				//return shortest distance
-				dist = d;
-				
-				if (d < 10000.0) {
-					return true;
-				}
-				
-				return false;
-			}			
 
-			bool intersectPlane(vec3 center, float size, vec3 lStart, vec3 lDir, vec3 n, out float dist)
+			bool intersectPlane(vec3 center, float size, vec3 n, vec3 lStart, vec3 lDir, out float dist)
 			{
 				//ray dir
 				vec3 l = lDir;
@@ -170,8 +104,7 @@
 				if (dist < 0.0)
 				{
 					return false;
-				}
-				
+				}				
 				
 				//float dP = distance(p0, p);
 				vec3 p = (dist*l + l0);
@@ -227,16 +160,14 @@
 				return true;
   			}		
 			
-			bool intersectScene(vec3 rStart, vec3 rDir, out vec3 pos, out int cubeSide)
+			bool intersectScene(vec3 rStart, vec3 rDir, out vec3 pos)
 			{
 				float d = 10000.0;
 				float newD;
-				int cSide;
-				cubeSide = -1;
 				bool hit = false;				
 				
 				for (int i = 0; i < NUM_SHAPES; i++)
-				//for (int i = 0; i < 1/*NUM_SHAPES*/; i++)
+				//for (int i = 0; i < 1; i++)
 				{
 					if (shapes[i].type == SPHERE) {
 						//bool intersectSphere(int s, vec3 lStart, vec3 lDir, out float dist)
@@ -249,14 +180,14 @@
 							}
 						}
 					}
-					if (shapes[i].type == CUBE) {
+					if (shapes[i].type == PLANE) {
 						//bool intersectCube(int s, vec3 lStart, vec3 lDir, out float dist, out int cubeSide)
-						if (intersectCube(shapes[i].size, shapes[i].pos, rStart, rDir, newD, cSide))
+						//bool intersectPlane(vec3 center, float size, vec3 lStart, vec3 lDir, vec3 n, out float dist)
+						if (intersectPlane(shapes[i].pos, shapes[i].size, shapes[i].norm, rStart, rDir, newD))
 						{
 							hit = true;
 							if (newD < d) {
 								d = newD;
-								cubeSide = cSide;
 								currentShape = shapes[i];
 							}
 							
@@ -276,9 +207,8 @@
 			{
 				float d = 10000.0;
 				float newD;
-				int cubeSide = -1;
 				for (int i = 0; i < NUM_SHAPES; i++)
-				//for (int i = 0; i < 1/*NUM_SHAPES*/; i++)
+				//for (int i = 0; i < 1; i++)
 				{
 					if (shapes[i].type == SPHERE) {
 						//bool intersectSphere(int s, vec3 lStart, vec3 lDir, out float dist)
@@ -289,9 +219,10 @@
 							}
 						}
 					}
-					if (shapes[i].type == CUBE) {
+					if (shapes[i].type == PLANE) {
 						//bool intersectCube(int s, vec3 lStart, vec3 lDir, out float dist, out int cubeSide)
-						if (intersectCube(shapes[i].size, shapes[i].pos, rStart, rDir, newD, cubeSide))
+						//bool intersectPlane(vec3 center, float size, vec3 lStart, vec3 lDir, vec3 n, out float dist)
+						if (intersectPlane(shapes[i].pos, shapes[i].size, shapes[i].norm, rStart, rDir, newD))
 						{
 							if (newD < d) {
 								d = newD;								
@@ -339,13 +270,12 @@
 				float n = n1/n2;
 				float cosI = dot(-i, norm);
 				float sin2T = n * n * ( 1.0 - cosI * cosI);
-				if (sin2T > 1.0)//total internal reflection - *****waht ot do in this case?
+				if (sin2T > 1.0)//total internal reflection - *****what ot do in this case?
 				{
 					return vec3(0.0, 0.0, 0.0);
 				}
 				float cosT = sqrt(1.0 - sin2T);
 				return n * i + (n * cosI - cosT) * norm;
-				return vec3(0.0, 0.0, 0.0);
 			}
 			
 			float fresnel(float n1, float n2, vec3 norm, vec3 i)//schlick's approx
@@ -383,56 +313,14 @@
 				return 1.0;
 			}*/
 			
-			const int ZERO = 0;
-			const int ONE = 1;
-			const int TWO = 2;
-			const int THREE = 3;
-			const int FOUR = 4;
-			const int FIVE = 5;
-			
-			void cubeNormAndColor(int cSide, out vec3 n, out vec3 c)
-			{
-				if (cSide == 0)
-				{
-					n = norms[ZERO];
-					c = colors[ZERO];
-				}
-				else if (cSide == 1)
-				{
-					n = norms[ONE];
-					c = colors[ONE];
-				}
-				else if (cSide == 2)
-				{
-					n = norms[TWO];
-					c = colors[TWO];
-				}
-				else if (cSide == 3)
-				{
-					n = norms[THREE];
-					c = colors[THREE];
-				}
-				else if (cSide == 4)
-				{
-					n = norms[FOUR];
-					c = colors[FOUR];
-				}
-				else if (cSide == 5)
-				{
-					n = norms[FIVE];
-					c = colors[FIVE];
-				}	
-			}
-			
   			void main(void)
   			{
 				vec3 cameraDir = normalize(vPosition - cameraPos);
 				vec3 sPos, sN, sC, n, nO, c, cO, surfC, reflD, reflC = vec3(0.0, 0.0, 0.0), reflP, refrD, refrC, refrP;
 				bool hit = false;
-				int cSide = -1;
 				Shape surfShape, reflShape, refrShape;
 				
-				hit = intersectScene(cameraPos, cameraDir, sPos, cSide);
+				hit = intersectScene(cameraPos, cameraDir, sPos);
 				
 				//if intersection do lighting calcs
 				if (hit)
@@ -443,13 +331,13 @@
 					if (surfShape.type == SPHERE)
 					{
 						sN = normalize(sPos - currentShape.pos);
-						sC = currentShape.diffuse;
 					}
-					if (surfShape.type == CUBE)
+					if (surfShape.type == PLANE)
 					{
-						cubeNormAndColor(cSide, sN, sC);		
+						sN = currentShape.norm;
 					}
-					
+					sC = currentShape.diffuse;
+
 					surfC = colorAt(sC, sPos, sN);
 					
 					vec3 rN, rC;
@@ -458,20 +346,19 @@
 					{
 						//reflect about normal
 						reflD = reflect(cameraDir, sN);
-						if (intersectScene(sPos + 0.01*sN, reflD, reflP, cSide))
+						if (intersectScene(sPos + 0.01*sN, reflD, reflP))
 						{
 							reflShape = currentShape;
 							if (reflShape.type == SPHERE)
 							{
 								rN = normalize(reflP - reflShape.pos);
-								rC = vec3(0.0, 0.0, 1.0);
 							}
-							if (reflShape.type == CUBE)
+							if (reflShape.type == PLANE)
 							{
-								cubeNormAndColor(cSide, rN, rC);		
+								rN = reflShape.norm;		
 							}
+							rC = reflShape.diffuse;
 							reflC = colorAt(rC, reflP, rN);
-							//reflC = vec3(0.0, 1.0, 0.0);
 						}
 					}
 					
@@ -480,38 +367,38 @@
 					//refraction color
 					if (surfShape.transparency > 0.0)
 					{
-						refrD = refrDir(1.0, 1.33, sN, cameraDir);
-						if(intersectScene(sPos - 0.01*sN, refrD, refrP, cSide))
+						//1st intersection
+						refrD = refrDir(1.0, 1.33, sN, cameraDir);						
+						if(intersectScene(sPos - 0.01*sN, refrD, refrP))
 						{
 							refrShape = currentShape;
 							if(refrShape.type == SPHERE)
 							{
 								tN = -1.0*normalize(refrP - refrShape.pos);
 							}
-							if(refrShape.type == CUBE)
+							if(refrShape.type == PLANE)
 							{
-								cubeNormAndColor(cSide, tN, tC);
-								tN *= -1.0;
+								tN = -1.0*refrShape.norm;
 							}
 							
 							//2nd intersection
 							//--reset tC
 							tC = vec3(0.0, 0.0, 0.0);
 							refrD2 = refrDir(1.33, 1.0, tN, refrD);
-							if(intersectScene(refrP - 0.01*tN, refrD2, refrP2, cSide))
+							if(intersectScene(refrP - 0.01*tN, refrD2, refrP2))
 							{
 								refrShape = currentShape;
 								if(refrShape.type == SPHERE)
 								{
 									tN = normalize(refrP2 - refrShape.pos);
-									tC = refrShape.diffuse;
 								}
-								if(refrShape.type == CUBE)
+								if(refrShape.type == PLANE)
 								{
-									cubeNormAndColor(cSide, tN, tC);
+									tN = refrShape.norm;
 								}
+								tC = refrShape.diffuse;
 								refrC = colorAt(tC, refrP2, tN);
-							}							
+							}
 						}
 					}
 					
@@ -519,12 +406,15 @@
 					//float f = fresnel(1.0, 1.33, sN, cameraDir);
 					//vec3 finalC = (f*reflC*surfShape.reflectance + (1.0-f)*refrC*surfShape.transparency) + surfC;
 					//gl_FragColor = vec4(f, 0.0, 0.0 1.0);
-					gl_FragColor = vec4(surfC, 1.0);
+					//gl_FragColor = vec4(surfC, 1.0);
+					gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+					
 				}
 				else
 				{
       					gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
     				}
+				//gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
  			}
 		</script>
 		
@@ -584,14 +474,14 @@
 			
 			var camOffset = -.5;
 			
-			var wWidth = window.innerWidth;
-			var wHeight = window.innerHeight;			
+			//var wWidth = window.innerWidth;
+			//var wHeight = window.innerHeight;			
 
 			var rtTexture, material, quad;
 
 			var delta = 0.01;
 
-			var SPHERE = 0, CUBE = 1;
+			var SPHERE = 0, PLANE = 1;
 
 			var mesh1, mesh2;
 
@@ -607,6 +497,30 @@
 
 			init();
 			animate();
+			
+			function cubePos(pos, size) {
+				var posArray = [];
+				var offsetX = {x: size, y: 0.0, z: 0.0};
+				var offsetY = {x: 0.0, y: size, z: 0.0};
+				var offsetZ = {x: 0.0, y: 0.0, z: size};				
+				
+				posArray[0] = vectAdd(pos, offsetX);
+				posArray[1] = vectSub(pos, offsetX);
+				posArray[2] = vectAdd(pos, offsetY);
+				posArray[3] = vectSub(pos, offsetY);
+				posArray[4] = vectAdd(pos, offsetZ);
+				posArray[5] = vectSub(pos, offsetZ);
+				
+				var positions = new Array();
+				
+				for (var i = 0; i < 6; i++) {
+					positions[i] = [];					
+					positions[i][0] = posArray[i].x;
+					positions[i][1] = posArray[i].y;
+					positions[i][2] = posArray[i].z;
+				}				
+				return positions;
+			}
 
 			function init() {
 				container = document.getElementById( 'container' );
@@ -622,11 +536,7 @@
 				origin = {x: 0, y: 0, z: 0};			
 				center = {x: 0, y: 0, z: 0};
 
-				//mouse movement
-				//camRotationMatrix = new THREE.Matrix4();
-				cPos = new THREE.Vector3();
-				startPos = new THREE.Vector3(0, 0, 20);
-				cPos.copy(startPos);
+				
 				
 				//camera
 				cameraRTT = new THREE.OrthographicCamera( w / - 2, w / 2, h  / 2, h / - 2, -10000, 10000 );
@@ -647,22 +557,45 @@
 				//txtre to render to
 				rtTexture = new THREE.WebGLRenderTarget( 512, 512, { minFilter: THREE.LinearFilter, magFilter: THREE.NearestFilter, format: THREE.RGBFormat } );
 				
+				//cube stuff
+				var cPos = {x:0, y:0, z:0}, cSize = 3.0;
+				var positionsArray = cubePos(cPos, cSize);
+				
+				var normalsArray = new Array();
+				normalsArray[0] = [1, 0, 0];
+				normalsArray[1] = [-1, 0, 0];
+				normalsArray[2] = [0, 1, 0];
+				normalsArray[3] = [0, -1, 0];
+				normalsArray[4] = [0, 0, 1];
+				normalsArray[5] = [0, 0, -1];
+				
+				/*struct Shape
+				{
+					vec3 pos;
+					vec3 norm;
+					vec3 diffuse;				
+					float reflectance;
+					float transparency;
+					float size;
+					int  type;
+				}currentShape;*/
+				
+				
+				
+				
+				
 				uniforms =
 				{
 					/**********************************************************/
 					//--shapes
-					//cube
-					"shapes[0].type": {
-						type: 'i',
-						value: CUBE						
-					},
-					"shapes[0].size": {
-						type: 'f',
-						value: 3.0//6.0
-					},
+					//plane1
 					"shapes[0].pos": {
 						type: 'fv',
-						value: [-1.0, 0.75, 0.0]//[0.5, 0.5, 0.5]//[0, 0, 0]////
+						value: positionsArray[0]//[0.5, 0.5, 0.5]//[0, 0, 0]////
+					},
+					"shapes[0].norm": {
+						type: 'fv',
+						value: normalsArray[0]//[0.5, 0.5, 0.5]//[0, 0, 0]////
 					},
 					"shapes[0].diffuse": {
 						type: 'fv',
@@ -671,23 +604,27 @@
 					"shapes[0].reflectance": {
 						type: 'f',
 						value: 0.0
-					},
+					},					
 					"shapes[0].transparency": {
 						type: 'f',
 						value: 0.0
 					},
-					//sphere
-					"shapes[1].type": {
-						type: 'i',
-						value: SPHERE							
-					},
-					"shapes[1].size": {
+					"shapes[0].size": {
 						type: 'f',
-						value: 1.0
+						value: 3.0//6.0
 					},
+					"shapes[0].type": {
+						type: 'i',
+						value: PLANE						
+					},
+					//plane2
 					"shapes[1].pos": {
 						type: 'fv',
-						value: [0, 0, 0]
+						value: positionsArray[1]//[0.5, 0.5, 0.5]//[0, 0, 0]////
+					},
+					"shapes[1].norm": {
+						type: 'fv',
+						value: normalsArray[1]//[0.5, 0.5, 0.5]//[0, 0, 0]////
 					},
 					"shapes[1].diffuse": {
 						type: 'fv',
@@ -695,65 +632,136 @@
 					},
 					"shapes[1].reflectance": {
 						type: 'f',
-						value: 1.0
-					},
+						value: 0.0
+					},					
 					"shapes[1].transparency": {
 						type: 'f',
-						value: 1.0
+						value: 0.0
 					},
-					//--normals
-					"norms[0]": {
+					"shapes[1].size": {
+						type: 'f',
+						value: 3.0//6.0
+					},
+					"shapes[1].type": {
+						type: 'i',
+						value: PLANE						
+					},
+					//plane 3
+					"shapes[2].pos": {
 						type: 'fv',
-						value: [0, -1, 0]
+						value: positionsArray[2]//[0.5, 0.5, 0.5]//[0, 0, 0]////
 					},
-					"norms[1]": {
+					"shapes[2].norm": {
 						type: 'fv',
-						value: [0, 1, 0]
+						value: normalsArray[2]//[0.5, 0.5, 0.5]//[0, 0, 0]////
 					},
-					"norms[2]": {
+					"shapes[2].diffuse": {
 						type: 'fv',
-						value: [-1, 0, 0]
+						value: [.3, 0, 0]
 					},
-					"norms[3]": {
+					"shapes[2].reflectance": {
+						type: 'f',
+						value: 0.0
+					},					
+					"shapes[2].transparency": {
+						type: 'f',
+						value: 0.0
+					},
+					"shapes[2].size": {
+						type: 'f',
+						value: 3.0//6.0
+					},
+					"shapes[2].type": {
+						type: 'i',
+						value: PLANE						
+					},
+					//plane4
+					"shapes[3].pos": {
 						type: 'fv',
-						value: [1, 0, 0]
+						value: positionsArray[3]//[0.5, 0.5, 0.5]//[0, 0, 0]////
 					},
-					"norms[4]": {
+					"shapes[3].norm": {
 						type: 'fv',
-						value: [0, 0, -1]
+						value: normalsArray[3]//[0.5, 0.5, 0.5]//[0, 0, 0]////
 					},
-					"norms[5]": {
+					"shapes[3].diffuse": {
 						type: 'fv',
-						value: [0, 0, 1]
+						value: [.3, 0, 0]
 					},
-					//face colors
-					"colors[0]": {
+					"shapes[3].reflectance": {
+						type: 'f',
+						value: 0.0
+					},					
+					"shapes[3].transparency": {
+						type: 'f',
+						value: 0.0
+					},
+					"shapes[3].size": {
+						type: 'f',
+						value: 3.0//6.0
+					},
+					"shapes[3].type": {
+						type: 'i',
+						value: PLANE						
+					},
+					//plane5
+					"shapes[4].pos": {
 						type: 'fv',
-						value: [0.76, 0.75, 0.5]
+						value: positionsArray[4]//[0.5, 0.5, 0.5]//[0, 0, 0]////
 					},
-					"colors[1]": {
+					"shapes[4].norm": {
 						type: 'fv',
-						value: [0.76, 0.75, 0.5]
+						value: normalsArray[4]//[0.5, 0.5, 0.5]//[0, 0, 0]////
 					},
-					"colors[2]": {
+					"shapes[4].diffuse": {
 						type: 'fv',
-						value: [0.63, 0.06, 0.04]
-						//value: [1.0, 0.06, 1.0]
-						//value: [0.3, 0, 0]
-						//value: [0.76, 0.75, 0.5]
+						value: [.3, 0, 0]
 					},
-					"colors[3]": {
+					"shapes[4].reflectance": {
+						type: 'f',
+						value: 0.0
+					},					
+					"shapes[4].transparency": {
+						type: 'f',
+						value: 0.0
+					},
+					"shapes[4].size": {
+						type: 'f',
+						value: 3.0//6.0
+					},
+					"shapes[4].type": {
+						type: 'i',
+						value: PLANE						
+					},
+					//plane6
+					"shapes[5].pos": {
 						type: 'fv',
-						value: [0.15, 0.48, 0.09]
+						value: positionsArray[5]//[0.5, 0.5, 0.5]//[0, 0, 0]////
 					},
-					"colors[4]": {
+					"shapes[5].norm": {
 						type: 'fv',
-						value: [0.76, 0.75, 0.5]
+						value: normalsArray[5]//[0.5, 0.5, 0.5]//[0, 0, 0]////
 					},
-					"colors[5]": {
+					"shapes[5].diffuse": {
 						type: 'fv',
-						value: [0.76, 0.75, 0.5]
+						value: [.3, 0, 0]
 					},
+					"shapes[5].reflectance": {
+						type: 'f',
+						value: 0.0
+					},					
+					"shapes[5].transparency": {
+						type: 'f',
+						value: 0.0
+					},
+					"shapes[5].size": {
+						type: 'f',
+						value: 3.0//6.0
+					},
+					"shapes[5].type": {
+						type: 'i',
+						value: PLANE						
+					},	
 					//--lights
 					"lights[0].pos": {
 						type: 'fv',
@@ -847,23 +855,7 @@
 				var time = Date.now() * 0.0015;
 		
 				/*update attributes*/
-				//--update 4 corners
-				
-				cLeftT = viewDirection(camera.left, camera.top, camOffset);
-    				cLeftB = viewDirection(camera.left, camera.bottom, camOffset);
-    				cRightT= viewDirection(camera.right, camera.top, camOffset);
-    				cRightB = viewDirection(camera.right, camera.bottom, camOffset);
-
-				cLeftT.add(camera.position);
-				cLeftB.add(camera.position);
-				cRightT.add(camera.position);
-				cRightB.add(camera.position);
-
-				/*dUL = cLeftT.distanceTo(camera.position);
-				dUR = cRightT.distanceTo(camera.position);
-				dBL = cLeftB.distanceTo(camera.position);
-				dBR = cRightB.distanceTo(camera.position);*/
-				
+				//--update 4 corners				
    				camP = { 
 					x: camera.position.x,
 					y: camera.position.y,
@@ -906,13 +898,7 @@
 				//renderer.enableScissorTest ( true )*/
 
 				renderer.render( sceneRTT, cameraRTT );		
-				//renderer.render(scene, camera);	   	
-
-				t += 0.03;
-    				if (t > Math.PI * 200) {
-      					t -= Math.PI * 200;
-   				}
-
+				//renderer.render(scene, camera);	  
 			}
 
 			function viewDirection(xLoc, yLoc, zLoc)
