@@ -51,8 +51,8 @@
 			bool intersectPlane(vec3 center, float size, vec3 n, vec3 lStart, vec3 lDir, out float dist);
 			const vec3 ambientLight = vec3(1.0, 1.0, 1.0);		
 			
-			const int NUM_LIGHTS = 2;
-			const int NUM_SHAPES = 6;
+			const int NUM_LIGHTS = 1;
+			const int NUM_SHAPES = 8;
 			
 			struct PointLight
 			{
@@ -406,8 +406,8 @@
 					//float f = fresnel(1.0, 1.33, sN, cameraDir);
 					//vec3 finalC = (f*reflC*surfShape.reflectance + (1.0-f)*refrC*surfShape.transparency) + surfC;
 					//gl_FragColor = vec4(f, 0.0, 0.0 1.0);
-					//gl_FragColor = vec4(surfC, 1.0);
-					gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+					gl_FragColor = vec4(surfC, 1.0);
+					//gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
 					
 				}
 				else
@@ -558,16 +558,24 @@
 				rtTexture = new THREE.WebGLRenderTarget( 512, 512, { minFilter: THREE.LinearFilter, magFilter: THREE.NearestFilter, format: THREE.RGBFormat } );
 				
 				//cube stuff
-				var cPos = {x:0, y:0, z:0}, cSize = 3.0;
-				var positionsArray = cubePos(cPos, cSize);
+				var SIZE = 3.0;
+				
+				var cPos = {x:0, y:0, z:0};
+				var positionsArray = cubePos(cPos, SIZE);
 				
 				var normalsArray = new Array();
-				normalsArray[0] = [1, 0, 0];
-				normalsArray[1] = [-1, 0, 0];
-				normalsArray[2] = [0, 1, 0];
-				normalsArray[3] = [0, -1, 0];
-				normalsArray[4] = [0, 0, 1];
-				normalsArray[5] = [0, 0, -1];
+				normalsArray[0] = [-1, 0, 0];
+				normalsArray[1] = [1, 0, 0];
+				normalsArray[2] = [0, -1, 0];
+				normalsArray[3] = [0, 1, 0];
+				normalsArray[4] = [0, 0, -1];
+				normalsArray[5] = [0, 0, 1];
+				
+				var GREEN = [0, 1, 0];//[0.15, 0.48, 0.09];
+				var RED = [1, 0, 0];//[0.63, 0.06, 0.04];
+				var WHITE = [1, 1, 1];//[0.76, 0.75, 0.5];
+				
+				
 				
 				/*struct Shape
 				{
@@ -588,14 +596,13 @@
 				{
 					/**********************************************************/
 					//--shapes
-					//plane1
-					"shapes[0].pos": {
+					/*"shapes[0].pos": {
 						type: 'fv',
-						value: positionsArray[0]//[0.5, 0.5, 0.5]//[0, 0, 0]////
+						value: [1,-1,0]//[0.5, 0.5, 0.5]//[0, 0, 0]////
 					},
 					"shapes[0].norm": {
 						type: 'fv',
-						value: normalsArray[0]//[0.5, 0.5, 0.5]//[0, 0, 0]////
+						value: [0, 0, 0]//[0.5, 0.5, 0.5]//[0, 0, 0]////
 					},
 					"shapes[0].diffuse": {
 						type: 'fv',
@@ -611,7 +618,36 @@
 					},
 					"shapes[0].size": {
 						type: 'f',
-						value: 3.0//6.0
+						value: 2.0//6.0
+					},
+					"shapes[0].type": {
+						type: 'i',
+						value: SPHERE						
+					},*/
+					//plane1
+					"shapes[0].pos": {
+						type: 'fv',
+						value: positionsArray[0]//[0.5, 0.5, 0.5]//[0, 0, 0]////
+					},
+					"shapes[0].norm": {
+						type: 'fv',
+						value: normalsArray[0]//[0.5, 0.5, 0.5]//[0, 0, 0]////
+					},
+					"shapes[0].diffuse": {
+						type: 'fv',
+						value: [0.15, 0.48, 0.09]//[.3, 0, 0]////GREEN
+					},
+					"shapes[0].reflectance": {
+						type: 'f',
+						value: 0.0
+					},					
+					"shapes[0].transparency": {
+						type: 'f',
+						value: 0.0
+					},
+					"shapes[0].size": {
+						type: 'f',
+						value: SIZE//6.0
 					},
 					"shapes[0].type": {
 						type: 'i',
@@ -628,7 +664,7 @@
 					},
 					"shapes[1].diffuse": {
 						type: 'fv',
-						value: [.3, 0, 0]
+						value: [0.63, 0.06, 0.04]//[.3, 0, 0]////RED
 					},
 					"shapes[1].reflectance": {
 						type: 'f',
@@ -640,7 +676,7 @@
 					},
 					"shapes[1].size": {
 						type: 'f',
-						value: 3.0//6.0
+						value: SIZE//6.0
 					},
 					"shapes[1].type": {
 						type: 'i',
@@ -657,7 +693,7 @@
 					},
 					"shapes[2].diffuse": {
 						type: 'fv',
-						value: [.3, 0, 0]
+						value: [0.76, 0.75, 0.5]//[.3, 0, 0]////WHITE
 					},
 					"shapes[2].reflectance": {
 						type: 'f',
@@ -669,7 +705,7 @@
 					},
 					"shapes[2].size": {
 						type: 'f',
-						value: 3.0//6.0
+						value: SIZE//6.0
 					},
 					"shapes[2].type": {
 						type: 'i',
@@ -686,7 +722,7 @@
 					},
 					"shapes[3].diffuse": {
 						type: 'fv',
-						value: [.3, 0, 0]
+						value: [0.76, 0.75, 0.5]//[.3, 0, 0]//[0.76, 0.75, 0.5]//WHITE
 					},
 					"shapes[3].reflectance": {
 						type: 'f',
@@ -698,7 +734,7 @@
 					},
 					"shapes[3].size": {
 						type: 'f',
-						value: 3.0//6.0
+						value: SIZE//6.0
 					},
 					"shapes[3].type": {
 						type: 'i',
@@ -715,7 +751,7 @@
 					},
 					"shapes[4].diffuse": {
 						type: 'fv',
-						value: [.3, 0, 0]
+						value: [0.76, 0.75, 0.5]//[.3, 0, 0]//[0.76, 0.75, 0.5]//WHITE
 					},
 					"shapes[4].reflectance": {
 						type: 'f',
@@ -727,7 +763,7 @@
 					},
 					"shapes[4].size": {
 						type: 'f',
-						value: 3.0//6.0
+						value: SIZE//6.0
 					},
 					"shapes[4].type": {
 						type: 'i',
@@ -744,7 +780,7 @@
 					},
 					"shapes[5].diffuse": {
 						type: 'fv',
-						value: [.3, 0, 0]
+						value: [0.76, 0.75, 0.5]//[.3, 0, 0]//[0.76, 0.75, 0.5]//WHITE
 					},
 					"shapes[5].reflectance": {
 						type: 'f',
@@ -756,16 +792,74 @@
 					},
 					"shapes[5].size": {
 						type: 'f',
-						value: 3.0//6.0
+						value: SIZE//6.0
 					},
 					"shapes[5].type": {
 						type: 'i',
 						value: PLANE						
-					},	
+					},
+					//sphere1
+					"shapes[6].pos": {
+						type: 'fv',
+						value: [-1, 1, -1]//[0.5, 0.5, 0.5]//[0, 0, 0]////
+					},
+					"shapes[6].norm": {
+						type: 'fv',
+						value: [0, 0, 0]//[0.5, 0.5, 0.5]//[0, 0, 0]////
+					},
+					"shapes[6].diffuse": {
+						type: 'fv',
+						value: [.3, 0, 0]
+					},
+					"shapes[6].reflectance": {
+						type: 'f',
+						value: 0.0
+					},					
+					"shapes[6].transparency": {
+						type: 'f',
+						value: 0.0
+					},
+					"shapes[6].size": {
+						type: 'f',
+						value: 1.0//6.0
+					},
+					"shapes[6].type": {
+						type: 'i',
+						value: SPHERE						
+					},
+					//sphere2
+					"shapes[7].pos": {
+						type: 'fv',
+						value: [1, -1, 1]//[0.5, 0.5, 0.5]//[0, 0, 0]////
+					},
+					"shapes[7].norm": {
+						type: 'fv',
+						value: [0, 0, 0]//[0.5, 0.5, 0.5]//[0, 0, 0]////
+					},
+					"shapes[7].diffuse": {
+						type: 'fv',
+						value: [.3, 0, 0]
+					},
+					"shapes[7].reflectance": {
+						type: 'f',
+						value: 0.0
+					},					
+					"shapes[7].transparency": {
+						type: 'f',
+						value: 0.0
+					},
+					"shapes[7].size": {
+						type: 'f',
+						value: 1.0//6.0
+					},
+					"shapes[7].type": {
+						type: 'i',
+						value: SPHERE						
+					},		
 					//--lights
 					"lights[0].pos": {
 						type: 'fv',
-						value: [0, 2.8, 0]
+						value: [-10, 0, 0]
 					},
 					"lights[0].col": {
 						type: 'fv',
