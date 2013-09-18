@@ -268,62 +268,94 @@
 				}
 			}
 			
+			vec3 getColor(int shape, vec3 pos, out vec3 norm)
+			{
+				vec3 n, c;
+				if(shape == 0)//cube
+				{
+					n = -cubeNormal(pos, cubeMin, cubeMax);
+					c = cubeColor(pos);
+				}
+				else if(shape > 0)//spheres
+				{
+					for(int i = 0; i < NUM_SPHERES; i++)
+					{
+						if(shape == (i+1))
+						{
+							n = normalize(pos - spheres[i].pos);
+							c = spheres[i].diffuse;
+						}
+					}
+				}
+				else
+				{
+					norm = vec3(0.0, 0.0, 0.0);
+					return norm;
+				}
+
+				norm = n;
+				return colorAt(c, pos, n);
+			}
+
   			void main(void)
   			{
+  				//calc ray dir
 				vec3 cameraDir = normalize(vPosition - cameraPos);
-				vec3 sPos, sN, sC, n, nO, c, cO, surfC, reflD, reflC, reflP, refrD, refrC, refrP;
+
+				//determine intersect
+				vec3 sP;
 				bool hit = false;				
-				hit = intersectScene(cameraPos, cameraDir, sPos);
+				hit = intersectScene(cameraPos, cameraDir, sP);
 				
-				//if intersection do lighting calcs
 				if (hit)
 				{					
-					//surface color
-					//--find shape hit
-					if(currentShape == 0)//cube
+					vec3 sN, sC = vec3(0.0, 0.0, 0.0), reflC = vec3(0.0, 0.0,0.0), refrC = vec3(0.0, 0.0, 0.0);
+					sC = getColor(currentShape, sP, sN);
+					
+					for(int i = 0; i < NUM_SPHERES; i++)
 					{
-						sN = -cubeNormal(sPos, cubeMin, cubeMax);
-						sC = cubeColor(sPos);
-					}
-					else//spheres
-					{
-						for(int i = 0; i < NUM_SPHERES; i++)
+						if(currentShape == (i+1))
 						{
-							if(currentShape == (i+1))
+							if(spheres[i].reflectance > 0.0)
 							{
-								sN = normalize(sPos - spheres[i].pos);
-								sC = spheres[i].diffuse;
+								//store current shape
+								int tempShape = currentShape;
+								vec3 rN, reflP, reflD = reflect(cameraDir, sN);
+								if(intersectScene(sP + 0.01*sN, reflD, reflP))
+								{
+									reflC = getColor(currentShape, reflP, rN);
+								}
+								currentShape = tempShape;
+							}
+							if(spheres[i].transparency > 0.0)
+							{
+								vec3 refrD, refrP;
+								//get refraction dir
+								refrD = refrDir(1.0, 1.33, sN, cameraDir);
+
+								//store current shape
+								int tempShape = currentShape;
+								if(intersectScene(sP - 0.01*sN, refrD, refrP))
+								{
+									//get normal
+									vec3 rN = -(refrP - spheres[i].pos);//getcolor() vs calculating directly? which faster
+
+									//second refraction
+									refrD = refrDir(1.0, 1.33, rN, cameraDir);
+
+									//store current shape
+									int tempShape = currentShape;
+									if(intersectScene(refrP - 0.01*rN, refrD, refrP))//using same var ok?
+									{
+										refrC = getColor(currentShape, refrP, rN);
+									}
+									currentShape = tempShape;
+								}
+								currentShape = tempShape;
 							}
 						}
-					}
-					
-					surfC = colorAt(sC, sPos, sN);
-					currentShape = -1;
-					
-					
-					/*vec3 rN, rC;
-					//reflection color
-					if (surfShape.reflectance > 0.0)
-					{
-						//reflect about normal
-						reflD = reflect(cameraDir, sN);
-						if (intersectScene(sPos + 0.01*sN, reflD, reflP))
-						{
-							reflShape = currentShape;
-							if (reflShape.type == SPHERE)
-							{
-								rN = normalize(reflP - reflShape.pos);
-							}
-							if (reflShape.type == PLANE)
-							{
-								rN = reflShape.norm;		
-							}
-							rC = reflShape.diffuse;
-							reflC = colorAt(rC, reflP, rN);
-						}
-					}
-					
-					vec3 tN, tC;
+					}			
+					/*vec3 tN, tC;
 					vec3 refrD2, refrP2;
 					//refraction color
 					if (surfShape.transparency > 0.0)
@@ -366,8 +398,8 @@
 					//float fresnel(float n1, float n2, vec3 norm, vec3 i)//schlick's approx
 					//float f = fresnel(1.0, 1.33, sN, cameraDir);
 					//vec3 finalC = (f*reflC*surfShape.reflectance + (1.0-f)*refrC*surfShape.transparency) + surfC;
-					
-					gl_FragColor = vec4(surfC, 1.0);
+					currentShape = -1;
+					gl_FragColor = vec4(refrC, 1.0);
 				 	//gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
 				}
 				else
@@ -514,7 +546,7 @@
 					},					
 					"spheres[0].transparency": {
 						type: 'f',
-						value: 0.0
+						value: 1.0
 					},
 					//--lights
 					"lights[0].pos": {
