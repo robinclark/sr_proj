@@ -85,13 +85,11 @@
 				float tNear = max(max(t1.x, t1.y), t1.z);
 				float tFar = min(min(t2.x, t2.y), t2.z);
 
-				if(tNear > 0.0)//make sure intersect along positive ray direction
+				if(tNear < tFar)//make sure intersect along positive ray direction
 				{
-					if(tNear <= tFar)
-					{
-						dist = tNear;
-						return true;
-					}
+					
+					dist = tFar;
+					return true;
 				}
 				
 				return false;
@@ -253,6 +251,22 @@
 				else if(p.z < (cMin.z + epsilon)) return vec3(0.0, 0.0, -1.0);
 				else return vec3(0.0, 0.0, 1.0);
 			}
+
+			vec3 cubeColor(vec3 p)
+			{
+				if(p.x > 0.9999)
+				{
+					return vec3(0.63, 0.06, 0.04);
+				}
+				else if(p.x < -0.9999)
+				{
+					return vec3(0.15, 0.48, 0.09);
+				}
+				else
+				{
+					return vec3(0.76, 0.75, 0.5);
+				}
+			}
 			
   			void main(void)
   			{
@@ -268,8 +282,8 @@
 					//--find shape hit
 					if(currentShape == 0)//cube
 					{
-						sN = cubeNormal(sPos, cubeMin, cubeMax);
-						sC = vec3(0.0, 0.0, 0.3);
+						sN = -cubeNormal(sPos, cubeMin, cubeMax);
+						sC = cubeColor(sPos);
 					}
 					/*else//spheres
 					{
