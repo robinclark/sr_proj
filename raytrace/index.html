@@ -99,7 +99,7 @@
 			{
 				vec3 c = pos - rStart;
 				float b = dot(rDir, c);
-				float d = b*b - dot(c, c) + 1.0;
+				float d = b*b - dot(c, c) + 0.125;
 				if (d < 0.0) {
   					dist = 10000.0;
   					return false;
@@ -285,7 +285,7 @@
 						sN = -cubeNormal(sPos, cubeMin, cubeMax);
 						sC = cubeColor(sPos);
 					}
-					/*else//spheres
+					else//spheres
 					{
 						for(int i = 0; i < NUM_SPHERES; i++)
 						{
@@ -295,7 +295,7 @@
 								sC = spheres[i].diffuse;
 							}
 						}
-					}*/
+					}
 					
 					surfC = colorAt(sC, sPos, sN);
 					currentShape = -1;
@@ -374,8 +374,6 @@
 				{
       					gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
     			}
-
-    			//gl_FragColor = vec4(spheres[0].diffuse, 1.0);
  			}
 		</script>
 		
@@ -504,11 +502,11 @@
 					//sphere1
 					"spheres[0].pos": {
 						type: 'fv',
-						value: [0, 5, 0]
+						value: [0, 0, 0]
 					},
 					"spheres[0].diffuse": {
 						type: 'fv',
-						value: [.3, .3, 0]
+						value: [0.76, 0.75, 0.5]
 					},
 					"spheres[0].reflectance": {
 						type: 'f',
@@ -521,7 +519,7 @@
 					//--lights
 					"lights[0].pos": {
 						type: 'fv',
-						value: [-10, 0, 0]
+						value: [0, .8, 0]
 					},
 					"lights[0].col": {
 						type: 'fv',
