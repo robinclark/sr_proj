@@ -54,6 +54,7 @@
 			int currentShape = -1;
 			float epsilon = 0.0001;
 
+			//lights
 			struct PointLight
 			{
 				vec3 pos;
@@ -65,6 +66,7 @@
 			vec3 cubeMin = vec3(-1.0, -1.0, -1.0);
 			vec3 cubeMax = vec3(1.0, 1.0, 1.0);
 
+			//spheres
 			struct Sphere
 			{
 				vec3 pos;
@@ -76,7 +78,7 @@
 			
 			bool intersectCube(vec3 rStart, vec3 rDir, vec3 vMin, vec3 vMax, out float dist)
 			{
-				dist = 10000.0;
+				//dist = 10000.0;
 				vec3 tMin = (vMin - rStart) / rDir;
 				vec3 tMax = (vMax - rStart) / rDir;
 
@@ -86,8 +88,7 @@
 				float tFar = min(min(t2.x, t2.y), t2.z);
 
 				if(tNear < tFar)//make sure intersect along positive ray direction
-				{
-					
+				{					
 					dist = tFar;
 					return true;
 				}
@@ -150,6 +151,7 @@
 				return hit;
 			}
 			
+			//shadow ray shooter
 			float intersectScene(vec3 rStart, vec3 rDir)
 			{
 				float d = 10000.0;
@@ -427,43 +429,516 @@
 
 			if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
 
+			//cam stuff
+			var rtTexture, material, quad;
 			var container, stats;
-
 			var cameraRTT, sceneRTT, sceneScreen, renderer, scene, camera;
-
 			var uniforms, attributes, controls;
-
 			var ratio = 1.6
-
 			var w = 3.2;
-			var h = 2;
-			
+			var h = 2;			
 			var camOffset = -.5;
 			
-			//var wWidth = window.innerWidth;
-			//var wHeight = window.innerHeight;			
-
-			var rtTexture, material, quad;
-
-			var delta = 0.01;
-
-			var SPHERE = 0, PLANE = 1;
-
-			var mesh1, mesh2;
-
-			var lookDir; 
-			
+			var lookDir; 			
 			var origin;
 			var up;
-
-			var t = 0;
 			var center;			
 			var plotPos;
-			var attributes;
+			var attributes;			
 
-			init();
-			animate();
+			//-------------------------------------------------------------------------------------//
+			//cube info
+			//-------------------------------------------------------------------------------------//			
+			var cubeMin = {x:-1.0, y:-1.0, z:-1.0};
+			var cubeMax = {x: 1.0, y: 1.0, z: 1.0};
 
+			//-------------------------------------------------------------------------------------//
+			//Sphere obj
+			//-------------------------------------------------------------------------------------//
+			var NUM_SPHERES = 1;
+			function Sphere(pos, diffuse, reflectance, transparency)
+			{
+				this.pos = pos;
+				this.diffuse = diffuse;
+				this.reflectance = reflectance;
+				this.transparency = transparency;
+			}
+			var spheres = [];
+
+			var s1Pos = {x: 0, y: 0, z:0};
+			var s1Diffuse = {x: 0.76, y: 0.75, z:0.5};
+			var s1Refl = 0;
+			var s1Transp = 0;
+
+			spheres[0] = new Sphere(s1Pos, s1Diffuse, s1Refl, s1Transp);
+
+			//-------------------------------------------------------------------------------------//
+			//Light obj
+			//-------------------------------------------------------------------------------------//
+
+			function PointLight()
+			{
+				this.pos = pos;
+				this.col = col;
+			}
+			var lights = [];
+
+			var l1Pos = {x: 0, y: 0.8, z:0};
+			var l1Col = {x: 1, y: 1, z:1};
+
+			//-------------------------------------------------------------------------------------//
+			//Photon Mapping
+			//-------------------------------------------------------------------------------------//			
+			//texture globals
+			var tW = 8, tH = 128, depth = 3; // texture dims
+			var size = tW*tH*depth;
+			var posTex = new Uint8Array(size), dirTex = new Uint8Array(size), pwrTex = new Uint8Array(size); // three texture arrays
+			//--store # photons on each shape
+			var TOP = 0, BOTTOM = 1, RIGHT = 2, LEFT = 3, FRONT = 4, BACK = 5, SPHERE1 = 6;//array indices
+			var photonNumber = [0, 0, 0, 0, 0, 0, 0];
+			
+			//photon globals
+			var numPhotons = 100;
+			var maxBounces = 3;		
+			var powerScale = 1;	
+			//--photon fate
+			var DIFFUSE = 0, ABSORB = 1, TRANSMIT = 2, fate = -1;			
+			//--photon components
+			var dir, pos, pwr;
+			var shadowPwr = {x: 0, y: 0, z: 0};
+
+			//intersection globals
+			var currentShape = -1, cSide = -1;
+			var shapeDiffuse, norm, epsilon = 0.01, hitPos, dist;
+
+			//scatter n photons in scene & store in arrays for upload to textures
+			function scatterPhotons(n)
+			{			
+				var hit = false;
+				pwr = vDivide(l1Col, n);
+
+				for(var i = 0; i < n; i++)
+				{
+					var bounces = 1;
+
+					//gen rand dir
+					dir = rand3();
+					
+					//starting pos is light source
+					pos = vCopy(l1Pos);
+					
+					//while photon has intersected something and hasn't bounced 3 times
+					while(bounces <= maxBounces)//add caustics later
+					{	
+						//intersect with scene
+						var nDir = normalize(dir);
+						/*if (typeof nDir === undefined || typeof pos === undefined)
+						{
+							alert("ndir undefined");
+						}
+						console.log("nDir: %O", nDir);*/
+						hit = intersectScene(pos, nDir);
+						
+						if(hit)
+						{
+							//det shape diffuse
+							if(currentShape == 0)//if cube
+							{
+								norm = vectMul(cubeSideNormal(hitPos, cubeMin, cubeMax), -1);
+								shapeDiffuse = cubeColor(hitPos);
+								roulette(shapeDiffuse, 0);
+							}
+							else if(currentShape > 0) // if sphere
+							{
+								norm = normalize(vectSub(hitPos, spheres[currentShape-1].pos));
+								shapeDiffuse = spheres[currentShape-1].diffuse;
+								roulette(shapeDiffuse, spheres[currentShape-1].transparency);
+
+								//compute shadow photon
+								//--save current intersection info								
+								var tShape = currentShape, tPos = hitPos, tDist = dist;
+
+								//--two more intersects
+								var newPos = vectAdd(hitPos, vectMul(nDir, epsilon));
+								if(intersectScene(newPos, nDir))//hit sphere backside
+								{
+									newPos = vectAdd(hitPos, vectMul(nDir, epsilon));
+									if(intersectScene(newPos, nDir))//hit outside sphere
+									{
+										//store shadow photon - ?how to store shadow
+										storePhoton(hitPos, dir, shadowPwr);
+									}
+								}
+
+								//--restore inters info
+								currentShape = tShape;
+								hitPos = tPos;
+								dist = tDist;								
+							}
+							else
+							{
+								alert("What the fuk!!");
+							}
+
+
+							if(fate == DIFFUSE)//diffusely reflected
+							{
+								//scale photon power and store - 
+								pwr = vDivide(pwr,powerScale);
+								
+								//get shape & store
+								if (currentShape == 0)
+								{
+									storePhoton(pos, dir, pwr, cSide);
+								}
+								else
+								{
+									storePhoton(pos, dir, pwr, (currentShape+5));
+								}							
+
+								//reflect photon & adjust slightly
+								nDir = reflect(dir, norm);
+								pos = vectAdd(hitPos, vectMul(nDir,epsilon));
+							}
+							else if(fate == TRANSMIT && currentShape != 0)//cube cant transmit
+							{
+								//refract photon 
+								//refrDir(n1, n2, norm, i)
+								nDir = refrDir(1.0, 1.33, norm, nDir);
+								
+								//--refract into sphere
+								if(intersectScene(vectAdd(hitPos, vectMul(norm, -epsilon), nDir)))
+								{
+									//--refract outside of sphere
+									if (intersectScene(vectAdd(hitPos, vectMul(norm, -epsilon), nDir)))
+									{
+										hitPos = vectAdd(hitPos, vectMul(norm, epsilon));//adjust slightly
+									}
+								}								
+								else
+								{
+									break;
+								}
+							}
+							else //absorbed
+							{
+								//get shape & store
+								if (currentShape == 0)
+								{
+									storePhoton(pos, dir, pwr, cSide);
+								}
+								else
+								{
+									storePhoton(pos, dir, pwr, (currentShape+5));
+								}
+								break;
+							}
+							pos = vCopy(hitPos);
+							bounces++;							
+						}
+					}
+				}
+			}
+
+			//determine fate of photon
+			function roulette(d, t)//diffuse component, and transmission prob
+			{
+				var pRefl = vMax(d);
+				
+				//ensure (pRefl+t <=1)
+				if ((pRefl + t) > 1) {
+					t = 1-pRefl;
+				}
+				
+				//det photon fate
+				//--diff [0, pDifRefl]
+				//--transm [pDifRefl, pDifRefl+t]
+				//--absorb [pDifRefl, 1]
+				var x = Math.random();
+				
+				if(x < pRefl)
+				{
+					powerScale = pRefl;
+					fate = DIFFUSE;
+				}
+				else if (x < pRefl+t)
+				{
+					fate = TRANSMIT;
+				}
+				else
+				{
+					fate = ABSORB;
+				}
+			}
+			
+
+			//store photon for shape in tex array
+			function storePhoton(pos, dir, pwr, shape)
+			{
+				var index = shape*tW*depth + photonNumber[shape]*depth;
+
+				//adj values to 0-255 range b4 storing
+				posTex[index] = pos.x*128+128;
+				posTex[index+1] = pos.y*128+128;
+				posTex[index+2] = pos.z*128+128;
+
+				dirTex[index] = dir.x+128;
+				dirTex[index+1] = dir.y+128;
+				dirTex[index+2] = dir.z+128;
+
+				pwrTex[index] = pwr.x*255;
+				pwrTex[index+1] = pwr.y*255;
+				pwrTex[index+2] = pwr.z*255;
+				
+				//increment #photons on surface
+				photonNumber[shape]++;
+			}
+			
+			function testPhoton() {
+				//photon storage
+				/*pos1 = {x: 1, y: 2, z: 3};
+				dir1 = {x: 4, y: 5, z: 6};
+				pwr1 = {x: 7, y: 8, z: 9};
+				
+				storePhoton(pos1, dir1, pwr1, 0);
+				storePhoton(pos1, dir1, pwr1, 0);
+				
+				storePhoton(pos1, dir1, pwr1, 1);
+				storePhoton(pos1, dir1, pwr1, 1);
+				
+				//russian roulette
+				var color = {x:0.76, y:0.75, z:0.5};
+				var transp = 0.5;
+				
+				
+				roulette(color, transp);
+				
+				transp = 0.2;
+				roulette(color, transp);*/
+				
+				//scattering
+				scatterPhotons(100);
+				
+				/*var dir1 = {x: 4, y: 5, z: 6};
+				var dir2;
+				dir2 = vCopy(dir1);
+				dir1.x = 8;*/
+			}
+
+			//-------------------------------------------------------------------------------------//
+			//Intersection
+			//-------------------------------------------------------------------------------------//	
+			function intersectScene(rStart, rDir)
+			{
+				dist = 10000;
+				var d = 10000;
+				var hit = false;
+				
+				if (intersectCube(rStart, rDir, cubeMin, cubeMax))
+				{
+					hit = true;
+					if(dist < d)
+					{
+						d = dist;
+						currentShape = 0;
+					}
+					
+				}
+				
+				for (var i = 0; i < NUM_SPHERES; i++)
+				{
+					if (intersectSphere(spheres[i].pos, rStart, rDir))
+					{
+						hit = true;
+						if (dist < d) {
+							d = dist;
+							currentShape = (i+1);
+						}
+					}	
+				}
+				if (hit)
+				{
+					//hitPos = rStart + d * rDir; //set global pos var
+					hitPos = vectAdd(rStart, vectMul(rDir, d));
+				}				
+				return hit;
+			}
+
+			function intersectCube(rStart, rDir, cMin, cMax)
+			{
+				//var dist = 10000.0;
+				//var tMin = (vMin - rStart) / rDir; //-----how would this handle divide by zero????
+				//var tMax = (vMax - rStart) / rDir;
+				//console.log("rStart: %O", rStart);
+				console.log("rDir: %O", rDir);
+				var sub1 = vectSub(cMin, rStart);
+				var sub2 = vectSub(cMax, rStart);
+				
+				/*if (typeof sub1 === undefined || typeof sub2 === undefined)
+				{
+					alert("undefined");
+				}*/
+				
+				var tMin = vCompDivide(sub1, rDir);
+				var tMax = vCompDivide(sub2, rDir);			
+				
+				var t1 = minComp(tMin, tMax);
+				var t2 = maxComp(tMin, tMax);
+				var tNear = vMax(t1);
+				var tFar = vMin(t2);
+
+				if(tNear < tFar)//make sure intersect along positive ray direction
+				{					
+					dist = tFar;
+					return true;
+				}
+				
+				return false;
+			}
+
+			function cubeSideNormal(p, cMin, cMax)
+			{
+
+				if(p.x < (cMin.x + epsilon))//left
+				{
+					cSide = 2;
+					return {x: -1.0, y: 0.0, z: 0.0};
+				}
+				else if(p.x > (cMax.x - epsilon))//right
+				{
+					cSide = 3;
+					return {x:1.0, y:0.0, z:0.0};
+				}
+				else if(p.y < (cMin.y + epsilon))//bottom
+				{
+					cSide = 1;
+					return {x:0.0, y:-1.0, z:0.0};
+				}
+				else if(p.y > (cMax.y - epsilon))//top
+				{
+					cSide = 0;
+					return {x:0.0, y:1.0, z:0.0};
+				}
+				else if(p.z < (cMin.z + epsilon))//back
+				{
+					cSide = 5;
+					return {x:0.0, y:0.0, z:-1.0};
+				}
+				else//front
+				{
+					cSide = 4;
+					return {x:0.0, y:0.0, z:1.0};
+				}
+			}
+
+			function cubeColor(p)
+			{
+				if(p.x > 0.9999)
+				{
+					return {x:0.63, y:0.06, z:0.04};
+				}
+				else if(p.x < -0.9999)
+				{
+					return {x:0.15, y:0.48, z:0.09};
+				}
+				else
+				{
+					return {x:0.76, y:0.75, z:0.5};
+				}
+			}
+			
+			function intersectSphere(pos, rStart, rDir)
+			{
+				//vec3 c = pos - rStart;
+				//float b = dot(rDir, c);
+				//float d = b*b - dot(c, c) + 0.125;
+				var c = vectSub(pos, rStart);
+				var b = dot(rDir, c);
+				var d = b*b-dot(c,c) + 0.125;
+
+				if (d < 0.0) {
+  					dist = 10000.0;
+  					return false;
+				}
+
+				var t1 = b - Math.sqrt(d);
+				//float t2 = b + sqrt(d);
+				
+				if (t1 < 0.0) {
+					return false;
+				}
+				dist = t1;
+				return true;
+  			}
+			
+			/*vec3 refrDir(float n1, float n2, vec3 norm, vec3 i)
+			{
+				float n = n1/n2;
+				float cosI = dot(-i, norm);
+				float sin2T = n * n * ( 1.0 - cosI * cosI);
+				if (sin2T > 1.0)//total internal reflection
+				{
+					return vec3(0.0, 0.0, 0.0);
+				}
+				float cosT = sqrt(1.0 - sin2T);
+				return n * i + (n * cosI - cosT) * norm;
+			}
+			*/
+			
+			function refrDir(n1, n2, norm, i)
+			{
+				var n = n1/n2;
+				var cosI = dot(vectMul(i, -1), norm);
+				var sin2T = n * n * ( 1.0 - cosI * cosI);
+				if (sin2T > 1.0)//total internal reflection
+				{
+					return {x: 0, y:0, z:0};
+				}
+				var cosT = Math.sqrt(1.0 - sin2T);
+				return vectAdd(vectMul(i, n), vecMul(norm, (n*cosI - cosT)));
+			}
+
+			//I - 2.0 * dot(N, I) * N
+			function reflect(i, n)
+			{
+				return vectSub(i, vectMul(n, 2.0 * dot(n,i)));
+			}
+			
+			function testIntersections()
+			{
+				/*var n = {x: 0, y: 0, z: 1};
+				var v = {x: 1, y: 0, z: -1};
+				
+				var rflct = reflect(v,n);
+				
+				var cubeStart = {x: 0, y: 0, z: -1};
+				var cubeDir = {x: 1, y: 0, z: 0};
+				var cubeHit = intersectCube(cubeStart, cubeDir, cubeMin, cubeMax);
+				
+				var sphereStart = {x: 0, y: 0, z: -1};
+				var sphereDir = {x: 0, y: 0, z: 1};
+				var sphereHit = intersectSphere(s1Pos, sphereStart, sphereDir);*/
+				
+				var cubeStart = {x: 0.8, y: 0.8, z: -1};
+				var cubeDir = {x: 0, y: 0, z: 1};
+				
+				var sphereStart = {x: 0, y: 0, z: -1};
+				var sphereDir = {x: 0, y: 0, z: 1};
+				
+				var sceneHit = intersectScene(sphereStart, sphereDir);
+				var sceneHitPos = hitPos;
+				var sceneDist = dist;
+				
+				var sceneHit = intersectScene(cubeStart, cubeDir);
+				sceneHitPos = hitPos;
+				sceneDist = dist;
+				
+				//test refraction somehow!!!
+			}
+
+			//-------------------------------------------------------------------------------------//
+			//Init 
+			//-------------------------------------------------------------------------------------//
 			function init() {
 				container = document.getElementById( 'container' );
 
@@ -494,51 +969,35 @@
 				sceneScreen = new THREE.Scene();
 
 				//txtre to render to
-				rtTexture = new THREE.WebGLRenderTarget( 512, 512, { minFilter: THREE.LinearFilter, magFilter: THREE.NearestFilter, format: THREE.RGBFormat } );				
-				
-				/*struct Sphere
-				{
-				vec3 pos;
-				vec3 diffuse;				
-				float reflectance;
-				float transparency;
-				}*/		
-				
+				rtTexture = new THREE.WebGLRenderTarget( 512, 512, { minFilter: THREE.LinearFilter, magFilter: THREE.NearestFilter, format: THREE.RGBFormat } );	
+
 				uniforms =
 				{					
 					//sphere1
 					"spheres[0].pos": {
 						type: 'fv',
-						value: [0, 0, 0]
+						value: [s1Pos.x, s1Pos.y, s1Pos.z]
 					},
 					"spheres[0].diffuse": {
 						type: 'fv',
-						value: [0.76, 0.75, 0.5]
+						value: [s1Diffuse.x, s1Diffuse.y, s1Diffuse.z]
 					},
 					"spheres[0].reflectance": {
 						type: 'f',
-						value: 0.5
+						value: s1Refl
 					},					
 					"spheres[0].transparency": {
 						type: 'f',
-						value: 0.5
+						value: s1Transp
 					},
 					//--lights
 					"lights[0].pos": {
 						type: 'fv',
-						value: [0, .8, 0]
+						value: [l1Pos.x, l1Pos.y, l1Pos.z]
 					},
 					"lights[0].col": {
 						type: 'fv',
-						value: [1.0, 1.0, 1.0]
-					},
-					"lights[1].pos": {
-						type: 'fv',
-						value: [-10.0, 0.0, 0.0]
-					},
-					"lights[1].col": {
-						type: 'fv',
-						value: [1.0, 1.0, 1.0]
+						value: [l1Col.x, l1Col.y, l1Col.z]
 					},
 					/**********************************************************/
 					cameraPos: {
@@ -574,6 +1033,57 @@
 				} );
 
 				var plane = new THREE.PlaneGeometry( w, h);
+				/*--------------------------------------------------------------------------*/
+				/*testing texture*/
+				var tW = 512, tH = 512 , depth = 3;
+				var size = tW*tH*depth;
+				var pos = new Uint8Array(size);
+				var tCol;
+				//init array
+				for(var i = 0; i < tH; i++)
+				{
+					for(var j = 0; j < tW; j++)
+					{
+						/*if((i)%8 == 0)
+						{
+							if(tCol == 255) tCol = 0;
+							else tCol = 255;
+						}*/
+						/*pos[i*tW*depth + j*depth] = Math.random*255;
+						pos[i*tW*depth + j*depth+1] = Math.random*255;
+						pos[i*tW*depth + j*depth+2] = Math.random*255;*/
+						pos[i*tW*depth + j*depth] = Math.random()*255;
+						pos[i*tW*depth + j*depth+1] = Math.random()*255;
+						pos[i*tW*depth + j*depth+2] = Math.random()*255;
+					}
+				}
+
+				//scatter photons
+
+				var texMap = new THREE.DataTexture(pos, tW, tH, THREE.RGBFormat );
+				texMap.needsUpdate = true;	
+				var sampleTexMaterial = new THREE.MeshBasicMaterial({map: texMap});
+				var texMesh = new THREE.Mesh( plane, sampleTexMaterial );
+				sampleTexScreen = new THREE.Scene();
+				sampleTexScreen.add(texMesh);
+
+				/*var dir = new Uint8Array(size*3);
+				
+				for(var i = 0; i < size; i++)
+				{
+					dir[i*3] = 255;
+					dir[i*3+1] = 0;
+					dir[i*3+2] = 0;
+				}
+
+				texMap = new THREE.DataTexture(dir, tW, tH, THREE.RGBFormat );
+				texMap.needsUpdate = true;	
+				sampleTexMaterial = new THREE.MeshBasicMaterial({map: texMap});
+				var texMesh2 = new THREE.Mesh( plane, sampleTexMaterial );
+				sampleTexScreen.add(texMesh2);
+				*/
+				/*--------------------------------------------------------------------------*/
+				
 
 				quad = new THREE.Mesh( plane, material );
 				quad.position.z = 0;
@@ -589,6 +1099,9 @@
 				container.appendChild( stats.domElement );
 			}
 
+			//-------------------------------------------------------------------------------------//
+			//Render
+			//-------------------------------------------------------------------------------------//
 			function animate() {
 
 				requestAnimationFrame( animate );
@@ -597,6 +1110,9 @@
 				render();				
 			}						
 
+			//-------------------------------------------------------------------------------------//
+			//Animate
+			//-------------------------------------------------------------------------------------//
 			function render() {
 				camera.updateMatrixWorld();
 				camera.matrixWorldInverse.getInverse(camera.matrixWorld);			
@@ -631,8 +1147,7 @@
 				renderer.clear();
 
 				// Render first scene into texture
-
-				// renderer.render( sceneRTT, cameraRTT, rtTexture, true );
+				//--renderer.render( sceneRTT, cameraRTT, rtTexture, true );
 			
 				// Render full screen quad with generated texture
 				
@@ -645,31 +1160,100 @@
 				//renderer.enableScissorTest ( true )*/
 
 				renderer.render( sceneRTT, cameraRTT );		
-				//renderer.render(scene, camera);	  
+				//renderer.render( sampleTexScreen, cameraRTT );
 			}
 
-			function viewDirection(xLoc, yLoc, zLoc)
-			{
-				camera.updateMatrixWorld();
-				var pLocal = new THREE.Vector3(xLoc, yLoc, zLoc);	
-				var worldMat = camera.matrixWorld;
-				var pWorld = pLocal.applyMatrix4(worldMat);
-				var dir = pWorld.sub( camera.position );			
-
-				return dir;
-			}
-
+			//-------------------------------------------------------------------------------------//
+			//Vector Functions
+			//-------------------------------------------------------------------------------------//
 			function crossProd(v1, v2) {
     				return {x: v1.y*v2.z - v2.y*v1.z,
             			 y: v1.z*v2.x - v2.z*v1.x,
              			z: v1.x*v2.y - v2.x*v1.y };
   			}
 
+  			//return rand dir (components from -255 to 255)
+			function rand3()
+			{
+				var vX = (Math.random()-1)*128.0;
+				var vY = (Math.random()-1)*128.0;
+				var vZ = (Math.random()-1)*128.0;
+				
+				return {x: vX, y: vY, z: vZ};
+			}
+
   			function normalize(v) {
 				l = Math.sqrt(v.x*v.x + v.y*v.y + v.z*v.z);
 				return { x: v.x/l, y: v.y/l, z: v.z/l };
 			}
 
+			function maxComp(v1, v2)
+			{
+				var r = {x:0, y:0, z:0};
+				r.x = Math.max(v1.x, v2.x);
+				r.y = Math.max(v1.y, v2.y);
+				r.z = Math.max(v1.z, v2.z);
+
+				return r;
+			}
+
+			function minComp(v1, v2)
+			{
+				var r = {x:0, y:0, z:0};
+				r.x = Math.min(v1.x, v2.x);
+				r.y = Math.min(v1.y, v2.y);
+				r.z = Math.min(v1.z, v2.z);
+
+				return r;
+			}
+
+			function dot(v1, v2)
+			{
+				return v1.x*v2.x+v1.y*v2.y+v1.z*v2.z;
+			}
+
+			function vMax(v)
+			{
+				return Math.max(v.x, v.y, v.z);
+			}
+
+			function vMin(v)
+			{
+				return Math.min(v.x, v.y, v.z);
+			}
+			
+			function vCompDivide(v1, v2)
+			{
+				return {x: v1.x/v2.x, y: v1.y/v2.y, z: v1.z/v2.z};
+			}
+
+			function vDivide(v, d)
+			{
+				return {x: v.x/d, y: v.y/d, z: v.z/d};
+			}
+			function testVecFunctions()
+			{
+				var vRand = rand3();
+				
+				var t1 = {x:2, y:4, z:6};
+				var t2 = {x:2, y:2, z:2};
+				
+				var vNorm = normalize(t1);
+				var vMaxComp = maxComp(t1, t2);
+				var vMinComp = minComp(t1, t2);
+				var vDot = dot(t1, t2);
+				var max = vMax(t1);
+				var min = vMin(t1);
+				var compDivide = vCompDivide(t1, t2);
+				var divide = vDivide(t1, 2);
+			}
+			
+			function vCopy(v)
+			{
+				var r = {x: v.x, y: v.y, z: v.z};
+				return r;
+			}
+			//---
 			function vectAdd(v1, v2) {
 				return { x: v1.x + v2.x, y: v1.y + v2.y, z: v1.z + v2.z };
 			}
@@ -684,7 +1268,16 @@
 			
 			function distance(v1, v2) {
 				return Math.sqrt((v1.x-v2.x)*(v1.x-v2.x) + (v1.y-v2.y)*(v1.y-v2.y) + (v1.z-v2.z)*(v1.z-v2.z));
-			}
+			}		
+			//-------------------------------------------------------------------------------------//
+			//Start Program
+			//-------------------------------------------------------------------------------------//
+			//testVecFunctions();
+			//testIntersections();
+			testPhoton();
+			init();
+			animate();
+
 		</script>
 	</body>
 </html>
