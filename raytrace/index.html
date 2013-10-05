@@ -46,7 +46,14 @@
 			precision mediump float;
 			
 			varying vec3 vPosition;
+			vec2 texPos = vec2(vPosition);
+			varying vec2 vUv;
   			uniform vec3 cameraPos;
+			
+			//samplers
+			uniform sampler2D tDir;
+			uniform sampler2D tPos;
+			uniform sampler2D tPwr;
 			
 			const vec3 ambientLight = vec3(0.3, 0.3, 0.3);				
 			const int NUM_LIGHTS = 1;
@@ -378,11 +385,16 @@
 					//currentShape = -1;
 					//gl_FragColor = vec4(refrC, 1.0);
 					gl_FragColor = vec4(sC, 1.0);
+					//gl_FragColor = texture2D(tPwr, vec2(0.1,0.1));
+					//gl_FragColor = vec4(255.0, 255.0, 255.0,1.0);
 				}
 				else
 				{
       					gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
-    			}
+				}
+				
+				//gl_FragColor = texture2D(tPos, vUv);
+				//gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
  			}
 		</script>
 		
@@ -392,8 +404,10 @@
 			attribute vec3 aPlotPosition;
 
 			varying vec3 vPosition;
+			varying vec2 vUv;
 
 			void main() {
+				vUv = uv;
 				vPosition =  aPlotPosition;
 				gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
 			}
@@ -476,7 +490,7 @@
 			//Light obj
 			//-------------------------------------------------------------------------------------//
 
-			function PointLight()
+			function PointLight(pos, col)
 			{
 				this.pos = pos;
 				this.col = col;
@@ -492,19 +506,23 @@
 			//texture globals
 			var tW = 8, tH = 128, depth = 3; // texture dims
 			var size = tW*tH*depth;
-			var posTex = new Uint8Array(size), dirTex = new Uint8Array(size), pwrTex = new Uint8Array(size); // three texture arrays
+			//texture arrays
+			var posTexArray = new Uint8Array(size), dirTexArray = new Uint8Array(size), pwrTexArray = new Uint8Array(size);
+			var posTex, dirTex, pwrTex;
 			//--store # photons on each shape
 			var TOP = 0, BOTTOM = 1, RIGHT = 2, LEFT = 3, FRONT = 4, BACK = 5, SPHERE1 = 6;//array indices
 			var photonNumber = [0, 0, 0, 0, 0, 0, 0];
 			
 			//photon globals
-			var numPhotons = 100;
+			var NUM_PHOTONS = 100;
 			var maxBounces = 3;		
-			var powerScale = 1;	
+			var powerScale = 1;
+			
 			//--photon fate
-			var DIFFUSE = 0, ABSORB = 1, TRANSMIT = 2, fate = -1;			
+			var DIFFUSE = 0, ABSORB = 1, TRANSMIT = 2, fate = -1;
+			
 			//--photon components
-			var dir, pos, pwr;
+			var pDir, pPos, pPwr;
 			var shadowPwr = {x: 0, y: 0, z: 0};
 
 			//intersection globals
@@ -515,29 +533,29 @@
 			function scatterPhotons(n)
 			{			
 				var hit = false;
-				pwr = vDivide(l1Col, n);
+				pPwr = vDivide(l1Col, n);
 
 				for(var i = 0; i < n; i++)
 				{
 					var bounces = 1;
 
 					//gen rand dir
-					dir = rand3();
+					pDir = rand3();
 					
 					//starting pos is light source
-					pos = vCopy(l1Pos);
+					pPos = vCopy(l1Pos);
 					
 					//while photon has intersected something and hasn't bounced 3 times
 					while(bounces <= maxBounces)//add caustics later
 					{	
 						//intersect with scene
-						var nDir = normalize(dir);
+						var nDir = normalize(pDir);
 						/*if (typeof nDir === undefined || typeof pos === undefined)
 						{
 							alert("ndir undefined");
 						}
 						console.log("nDir: %O", nDir);*/
-						hit = intersectScene(pos, nDir);
+						hit = intersectScene(pPos, nDir);
 						
 						if(hit)
 						{
@@ -566,7 +584,7 @@
 									if(intersectScene(newPos, nDir))//hit outside sphere
 									{
 										//store shadow photon - ?how to store shadow
-										storePhoton(hitPos, dir, shadowPwr);
+										storePhoton(hitPos, pDir, shadowPwr);
 									}
 								}
 
@@ -584,21 +602,21 @@
 							if(fate == DIFFUSE)//diffusely reflected
 							{
 								//scale photon power and store - 
-								pwr = vDivide(pwr,powerScale);
+								pPwr = vDivide(pPwr,powerScale);
 								
 								//get shape & store
 								if (currentShape == 0)
 								{
-									storePhoton(pos, dir, pwr, cSide);
+									storePhoton(pPos, pDir, pPwr, cSide);
 								}
 								else
 								{
-									storePhoton(pos, dir, pwr, (currentShape+5));
+									storePhoton(pPos, pDir, pPwr, (currentShape+5));
 								}							
 
 								//reflect photon & adjust slightly
-								nDir = reflect(dir, norm);
-								pos = vectAdd(hitPos, vectMul(nDir,epsilon));
+								nDir = reflect(pDir, norm);
+								pPos = vectAdd(hitPos, vectMul(nDir,epsilon));
 							}
 							else if(fate == TRANSMIT && currentShape != 0)//cube cant transmit
 							{
@@ -625,19 +643,30 @@
 								//get shape & store
 								if (currentShape == 0)
 								{
-									storePhoton(pos, dir, pwr, cSide);
+									storePhoton(pPos, pDir, pPwr, cSide);
 								}
 								else
 								{
-									storePhoton(pos, dir, pwr, (currentShape+5));
+									storePhoton(pPos, pDir, pPwr, (currentShape+5));
 								}
 								break;
 							}
-							pos = vCopy(hitPos);
+							pPos = vCopy(hitPos);
 							bounces++;							
 						}
 					}
 				}
+			}
+			
+			function buildTextures()
+			{
+				posTex = new THREE.DataTexture(posTexArray, tW, tH, THREE.RGBFormat );
+				dirTex = new THREE.DataTexture(dirTexArray, tW, tH, THREE.RGBFormat );
+				pwrTex = new THREE.DataTexture(pwrTexArray, tW, tH, THREE.RGBFormat );
+				
+				posTex.needsUpdate = true;
+				dirTex.needsUpdate = true;
+				pwrTex.needsUpdate = true;
 			}
 
 			//determine fate of photon
@@ -678,17 +707,17 @@
 				var index = shape*tW*depth + photonNumber[shape]*depth;
 
 				//adj values to 0-255 range b4 storing
-				posTex[index] = pos.x*128+128;
-				posTex[index+1] = pos.y*128+128;
-				posTex[index+2] = pos.z*128+128;
+				posTexArray[index] = pos.x*128+128;
+				posTexArray[index+1] = pos.y*128+128;
+				posTexArray[index+2] = pos.z*128+128;
 
-				dirTex[index] = dir.x+128;
-				dirTex[index+1] = dir.y+128;
-				dirTex[index+2] = dir.z+128;
+				dirTexArray[index] = dir.x+128;
+				dirTexArray[index+1] = dir.y+128;
+				dirTexArray[index+2] = dir.z+128;
 
-				pwrTex[index] = pwr.x*255;
-				pwrTex[index+1] = pwr.y*255;
-				pwrTex[index+2] = pwr.z*255;
+				pwrTexArray[index] = pwr.x*255;
+				pwrTexArray[index+1] = pwr.y*255;
+				pwrTexArray[index+2] = pwr.z*255;
 				
 				//increment #photons on surface
 				photonNumber[shape]++;
@@ -717,7 +746,7 @@
 				roulette(color, transp);*/
 				
 				//scattering
-				scatterPhotons(100);
+				//scatterPhotons(100);
 				
 				/*var dir1 = {x: 4, y: 5, z: 6};
 				var dir2;
@@ -770,7 +799,7 @@
 				//var tMin = (vMin - rStart) / rDir; //-----how would this handle divide by zero????
 				//var tMax = (vMax - rStart) / rDir;
 				//console.log("rStart: %O", rStart);
-				console.log("rDir: %O", rDir);
+				//console.log("rDir: %O", rDir);
 				var sub1 = vectSub(cMin, rStart);
 				var sub2 = vectSub(cMax, rStart);
 				
@@ -935,6 +964,27 @@
 				
 				//test refraction somehow!!!
 			}
+			
+			/*function buildTextures(plane)
+			{
+				//scatter photons
+				scatterPhotons(NUM_PHOTONS);
+				
+				//-------------------------------------------------------------------------------------//
+				//Diffuse tex's
+				//-------------------------------------------------------------------------------------//
+				var posMap = new THREE.DataTexture(pos, tW, tH, THREE.RGBFormat );
+				posMap.needsUpdate = true;	
+				var sampleTexMaterial = new THREE.MeshBasicMaterial({map: posMap});
+				var posMesh = new THREE.Mesh( plane, sampleTexMaterial );
+				sampleTexScreen = new THREE.Scene();
+				sampleTexScreen.add(posMesh);
+				
+				
+				//-------------------------------------------------------------------------------------//
+				//Caustic tex's
+				//-------------------------------------------------------------------------------------//
+			}*/
 
 			//-------------------------------------------------------------------------------------//
 			//Init 
@@ -971,8 +1021,25 @@
 				//txtre to render to
 				rtTexture = new THREE.WebGLRenderTarget( 512, 512, { minFilter: THREE.LinearFilter, magFilter: THREE.NearestFilter, format: THREE.RGBFormat } );	
 
+				//scatter photons
+				scatterPhotons(100);
+				buildTextures();
+				
 				uniforms =
-				{					
+				{
+					//texture uniforms
+					tDir:
+					{
+						type: "t", value: dirTex
+					},
+					tPos:
+					{
+						type: "t", value: posTex
+					},
+					tPwr:
+					{
+						type: "t", value: pwrTex
+					},					
 					//sphere1
 					"spheres[0].pos": {
 						type: 'fv',
@@ -1034,54 +1101,32 @@
 
 				var plane = new THREE.PlaneGeometry( w, h);
 				/*--------------------------------------------------------------------------*/
-				/*testing texture*/
-				var tW = 512, tH = 512 , depth = 3;
-				var size = tW*tH*depth;
-				var pos = new Uint8Array(size);
-				var tCol;
-				//init array
-				for(var i = 0; i < tH; i++)
+				
+				//build textures
+				//buildTextures(plane);
+				/*var sampleTex, texWidth = 128, texHeight = 8, texDepth = 3;
+				var size = texWidth*texHeight*texDepth;
+				sampleTex = new Uint8Array(size);
+				for(var i = 0; i < size; i++)
 				{
-					for(var j = 0; j < tW; j++)
-					{
-						/*if((i)%8 == 0)
-						{
-							if(tCol == 255) tCol = 0;
-							else tCol = 255;
-						}*/
-						/*pos[i*tW*depth + j*depth] = Math.random*255;
-						pos[i*tW*depth + j*depth+1] = Math.random*255;
-						pos[i*tW*depth + j*depth+2] = Math.random*255;*/
-						pos[i*tW*depth + j*depth] = Math.random()*255;
-						pos[i*tW*depth + j*depth+1] = Math.random()*255;
-						pos[i*tW*depth + j*depth+2] = Math.random()*255;
-					}
+					sampleTex[i*3] = 255;
+					sampleTex[i*3+1] = 0;
+					sampleTex[i*3+2] = 0;
 				}
-
-				//scatter photons
-
-				var texMap = new THREE.DataTexture(pos, tW, tH, THREE.RGBFormat );
+				var texMap = new THREE.DataTexture(sampleTex, texWidth, texHeight, THREE.RGBFormat );
 				texMap.needsUpdate = true;	
 				var sampleTexMaterial = new THREE.MeshBasicMaterial({map: texMap});
 				var texMesh = new THREE.Mesh( plane, sampleTexMaterial );
 				sampleTexScreen = new THREE.Scene();
-				sampleTexScreen.add(texMesh);
-
-				/*var dir = new Uint8Array(size*3);
+				sampleTexScreen.add(texMesh);*/
 				
-				for(var i = 0; i < size; i++)
-				{
-					dir[i*3] = 255;
-					dir[i*3+1] = 0;
-					dir[i*3+2] = 0;
-				}
-
-				texMap = new THREE.DataTexture(dir, tW, tH, THREE.RGBFormat );
+				//take a look at pos, dir, pwr
+				/*var texMap = new THREE.DataTexture(dirTex, tW, tH, THREE.RGBFormat );
 				texMap.needsUpdate = true;	
-				sampleTexMaterial = new THREE.MeshBasicMaterial({map: texMap});
-				var texMesh2 = new THREE.Mesh( plane, sampleTexMaterial );
-				sampleTexScreen.add(texMesh2);
-				*/
+				var sampleTexMaterial = new THREE.MeshBasicMaterial({map: texMap});
+				var texMesh = new THREE.Mesh( plane, sampleTexMaterial );
+				sampleTexScreen = new THREE.Scene();
+				sampleTexScreen.add(texMesh);*/
 				/*--------------------------------------------------------------------------*/
 				
 
@@ -1274,7 +1319,7 @@
 			//-------------------------------------------------------------------------------------//
 			//testVecFunctions();
 			//testIntersections();
-			testPhoton();
+			//testPhoton();
 			init();
 			animate();
 
