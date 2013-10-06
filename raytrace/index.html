@@ -375,7 +375,7 @@
 				int cSide;
 				vec3 norm;
 				
-				/*if(hit)
+				if(hit)
 				{
 					//get shape hit and normal					
 					if (currentShape == 0)
@@ -396,15 +396,16 @@
 					}
 					
 					//find closest 10 photons w/in sq rad 0.7
-					texShapeIndex *= .125; //(1/8)
+					texShapeIndex = (8.0-(float(texShape)+1.0))/8.0;
 					
 					int photonsFound = 0;
 					vec3 accumColor;
 					for(int i = 0; i < 128; i++ )
 					{
-						if(photonsFound > 10) break; 						
+						if(photonsFound > 1) break; 						
 						float photon = float(i)/texWidth;
-						vec3 photonPos = vec3(texture2D(tPos, vec2(texShape, photon)));
+						//get position
+						vec3 photonPos = vec3(texture2D(tPos, vec2(photon, texShapeIndex)));
 						//rescale vals
 						photonPos *= 255.0;
 						photonPos -= 127.0;
@@ -415,19 +416,24 @@
 						{
 							photonsFound++;
 							//get dir & pwr
-							vec3 photonDir = vec3(texture2D(tDir, vec2(texShape, photon)));
-							vec3 photonPwr = vec3(texture2D(tPwr, vec2(texShape, photon)));
+							vec3 photonDir = vec3(texture2D(tDir, vec2(photon, texShapeIndex)));
+							vec3 photonPwr = vec3(texture2D(tPwr, vec2(photon, texShapeIndex)));
 							//rescale vals
 							photonDir *= 255.0;
 							photonDir -= 127.0;
 							photonDir = normalize(photonDir);
 							
 							
-							accumColor += dot(photonDir, norm)*photonPwr;
+							//accumColor += dot(photonDir, norm)*photonPwr;
+							accumColor = vec3(0.0, 1.0, 0.0);
 						}
 					}
 					gl_FragColor = vec4(accumColor, 1.0);					
-				}*/
+				}
+				else
+				{
+					gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+				}
 				
 				/*if (hit)
 				{					
@@ -506,8 +512,9 @@
       					gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
 				}*/
 				
-				gl_FragColor = texture2D(tPwr, vUv);
+				//gl_FragColor = texture2D(tDir, vUv);
 				//gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+				//gl_FragColor = texture2D(tDir, vec2((6.0/128.0), 0.125));
  			}
 		</script>
 		
@@ -721,10 +728,7 @@
 
 
 							if(fate == DIFFUSE)//diffusely reflected
-							{
-								//scale photon power and store - 
-								pPwr = vDivide(pPwr,powerScale);
-								
+							{								
 								//get shape & store
 								if (currentShape == 0)
 								{
@@ -735,6 +739,11 @@
 									storePhoton(pPos, pDir, pPwr, (currentShape+5));
 								}							
 
+								
+								//scale photon power
+								pPwr = vMultComponent(pPwr, shapeDiffuse);
+								pPwr = vDivide(pPwr,powerScale);
+								
 								//reflect photon & adjust slightly
 								nDir = reflect(pDir, norm);
 								pPos = vectAdd(hitPos, vectMul(nDir,epsilon));
@@ -814,6 +823,7 @@
 				else if (x < pRefl+t)
 				{
 					fate = TRANSMIT;
+					alert("transmit");
 				}
 				else
 				{
@@ -1448,6 +1458,10 @@
 			{
 				var r = {x: v.x, y: v.y, z: v.z};
 				return r;
+			}
+			function vMultComponent(v1, v2)
+			{
+				return {x: v1.x*v2.x, y: v1.y*v2.y, z: v1.z*v2.z};
 			}
 			//---
 			function vectAdd(v1, v2) {
