@@ -49,6 +49,8 @@
 			varying vec2 vUv;
   			uniform vec3 cameraPos;
 			uniform int numPhotons[8];
+			uniform int index;
+			//const int cIndex = index;
 			
 			//samplers
 			uniform sampler2D tDir;
@@ -70,7 +72,6 @@
 			uniform PointLight lights[NUM_LIGHTS];
 
 			//cube info
-			int cSide = -1;
 			vec3 cubeMin = vec3(-1.0, -1.0, -1.0);
 			vec3 cubeMax = vec3(1.0, 1.0, 1.0);
 
@@ -263,26 +264,13 @@
 			}
 
 			vec3 cubeColor(vec3 p)
-			{
-				/*if(p.x > 0.9999)
-				{
-					return vec3(0.63, 0.06, 0.04);
-				}
-				else if(p.x < -0.9999)
-				{
-					return vec3(0.15, 0.48, 0.09);
-				}
-				else
-				{
-					return vec3(0.76, 0.75, 0.5);
-				}*/
-				
-				if(p.x < (cubeMin.x + epsilon)) return vec3(0.63, 0.06, 0.04);//left
-				else if(p.x > (cubeMax.x - epsilon)) return vec3(0.15, 0.48, 0.09);//right
-				else if(p.y < (cubeMin.y + epsilon)) return vec3(0.0, 1.0, 0.0);//bottom
-				else if(p.y > (cubeMax.y - epsilon)) return vec3(0.0, 0.0,  1.0);//top
-				else if(p.z < (cubeMin.z + epsilon)) return vec3(0.0, 1.0, 1.0);//back
-				else return vec3(0.0, 0.0, 1.0);//front
+			{				
+				if(p.x < (cubeMin.x + epsilon)) return vec3(0.15, 0.48, 0.09);//left
+				else if(p.x > (cubeMax.x - epsilon)) return vec3(0.63, 0.06, 0.04);//right
+				else if(p.y < (cubeMin.y + epsilon)) return vec3(0.76, 0.75, 0.5);//bottom
+				else if(p.y > (cubeMax.y - epsilon)) return vec3(0.76, 0.75, 0.5);//top
+				else if(p.z < (cubeMin.z + epsilon)) return vec3(0.76, 0.75, 0.5);//back
+				else return vec3(0.76, 0.75, 0.5);//front
 			}
 			
 			vec3 getColor(int shape, vec3 pos, out vec3 norm)
@@ -314,54 +302,61 @@
 				return colorAt(c, pos, n);
 			}
 			
-			/*function cubeSide(vec3 pos)
+			void cubeSideNormal(vec3 p, out int cSide, out vec3 norm)
 			{
 
-				if(p.x < (cMin.x + epsilon))//left
+				if(p.x < (cubeMin.x + epsilon))//left
 				{
 					cSide = 2;
+					norm = vec3(-1.0, 0.0, 0.0);
 					//return {x: -1.0, y: 0.0, z: 0.0};
 				}
-				else if(p.x > (cMax.x - epsilon))//right
+				else if(p.x > (cubeMin.x - epsilon))//right
 				{
 					cSide = 3;
+					norm = vec3(1.0, 0.0, 0.0);
 					//return {x:1.0, y:0.0, z:0.0};
 				}
-				else if(p.y < (cMin.y + epsilon))//bottom
+				else if(p.y < (cubeMin.y + epsilon))//bottom
 				{
 					cSide = 1;
+					norm = vec3(0.0, -1.0, 0.0);
 					//return {x:0.0, y:-1.0, z:0.0};
 				}
-				else if(p.y > (cMax.y - epsilon))//top
+				else if(p.y > (cubeMin.y - epsilon))//top
 				{
 					cSide = 0;
+					norm = vec3(0.0, 1.0, 0.0);
 					//return {x:0.0, y:1.0, z:0.0};
 				}
-				else if(p.z < (cMin.z + epsilon))//back
+				else if(p.z < (cubeMin.z + epsilon))//back
 				{
 					cSide = 5;
+					norm = vec3(0.0, 0.0, -1.0);
 					//return {x:0.0, y:0.0, z:-1.0};
 				}
 				else//front
 				{
+					norm = vec3(0.0, 0.0, 1.0);
 					cSide = 4;
 					//return {x:0.0, y:0.0, z:1.0};
 				}
-			}*/
+			}
 			
 			//gatech
-			/*boolean gatedSqDist3(vec3 a, vec3[] b, float sqradius){ //Gated Squared Distance
-				float c = a[0] - b[0];          //Efficient When Determining if Thousands of Points
+			bool gatedSqDist(vec3 a, vec3 b, float sqradius){ //Gated Squared Distance
+				float c = a.x - b.x;          //Efficient When Determining if Thousands of Points
 				float d = c*c;                  //Are Within a Radius of a Point (and Most Are Not!)
 				if (d > sqradius) return false; //Gate 1 - If this dimension alone is larger than
-				c = a[1] - b[1];                //         the search radius, no need to continue
+				c = a.y - b.y;                //         the search radius, no need to continue
 				d += c*c;
 				if (d > sqradius) return false; //Gate 2
-				c = a[2] - b[2];
+				c = a.z - b.z;
 				d += c*c;
 				if (d > sqradius) return false; //Gate 3
-				gSqDist = d;      return true ; //Store Squared Distance Itself in Global State
-			}*/
+				//gSqDist = d;
+				return true ; //Store Squared Distance Itself in Global State
+			}
 
 			
   			void main(void)
@@ -374,29 +369,66 @@
 				bool hit = false;				
 				hit = intersectScene(cameraPos, cameraDir, sP);
 				
-				int texShape, texShapeIndex;
+				int texShape;
+				float texShapeIndex;
+				int cSide;
 				vec3 norm;
 				
-				/*if(hit)
+				if(hit)
 				{
 					//get shape hit and normal					
 					if (currentShape == 0)
 					{
-						cubeSide(sP);//set cube normal & side
+						cubeSideNormal(sP, cSide, norm);//set cube normal & side
 						texShape = cSide;
 					}
 					else
 					{
+						for(int i = 0; i < NUM_SPHERES; i++)
+						{
+							if(currentShape == (i+1))
+							{
+								norm = sP - spheres[i].pos;
+							}							
+						}						
 						texShape = currentShape+5;
 					}
 					
 					//find closest 10 photons w/in sq rad 0.7
 					texShapeIndex *= .125; //(1/8)
-					for(int i = 0; i < )
 					
-				}*/
+					int photonsFound = 0;
+					vec3 accumColor;
+					for(int i = 0; i < 128; i++ )
+					{
+						if(photonsFound > 10) break; 						
+						float photon = float(i)/128.0;
+						vec3 photonPos = vec3(texture2D(tPos, vec2(texShape, photon)));
+						//rescale vals
+						photonPos *= 255.0;
+						photonPos -= 127.0;
+						photonPos = normalize(photonPos);
+						
+						if(photonPos.x == 0.0 && photonPos.y == 0.0 && photonPos.z == 0.0) break;
+						if(gatedSqDist(sP, photonPos, 0.7))
+						{
+							photonsFound++;
+							//get dir & pwr
+							vec3 photonDir = vec3(texture2D(tDir, vec2(texShape, photon)));
+							vec3 photonPwr = vec3(texture2D(tPwr, vec2(texShape, photon)));
+							//rescale vals
+							photonDir *= 255.0;
+							photonDir -= 127.0;
+							photonDir = normalize(photonDir);
+							
+							
+							accumColor += dot(photonDir, norm)*photonPwr;
+						}
+					}
+					gl_FragColor = vec4(accumColor, 1.0);					
+				}
 				
-				if (hit)
+				/*if (hit)
 				{					
 					vec3 sN, sC = vec3(0.0, 0.0, 0.0), reflC = vec3(0.0, 0.0,0.0), refrC = vec3(0.0, 0.0, 0.0);
 					sC = getColor(currentShape, sP, sN);
@@ -471,10 +503,10 @@
 				else
 				{
       					gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
-				}
+				}*/
 				
 				//gl_FragColor = texture2D(tPos, vUv);
-				//gl_FragColor = vec4(numPhotons[1], 0.0, 0.0, 1.0);
+				//gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
  			}
 		</script>
 		
@@ -657,7 +689,7 @@
 								var tShape = currentShape, tPos = hitPos, tDist = dist;
 
 								//--two more intersects
-								var newPos = vectAdd(hitPos, vectMul(nDir, epsilon));
+								/*var newPos = vectAdd(hitPos, vectMul(nDir, epsilon));
 								if(intersectScene(newPos, nDir))//hit sphere backside
 								{
 									newPos = vectAdd(hitPos, vectMul(nDir, epsilon));
@@ -674,7 +706,7 @@
 											storePhoton(pPos, pDir, shadowPwr, (currentShape+5));
 										}	
 									}
-								}
+								}*/
 
 								//--restore inters info
 								currentShape = tShape;
@@ -1124,6 +1156,11 @@
 				
 				uniforms =
 				{
+					index:
+					{
+						type: "i",
+						value: 3
+					},
 					//number photons on each shape
 					numPhotons:
 					{
@@ -1323,9 +1360,9 @@
   			//return rand dir (components from -127 to 127)
 			function rand3()
 			{
-				var vX = Math.random()*255-126;
-				var vY = Math.random()*255-126;
-				var vZ = Math.random()*255-126;
+				var vX = Math.random()*255-127;
+				var vY = Math.random()*255-127;
+				var vZ = Math.random()*255-127;
 				
 				return {x: vX, y: vY, z: vZ};
 			}
