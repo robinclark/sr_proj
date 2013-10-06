@@ -50,6 +50,7 @@
   			uniform vec3 cameraPos;
 			uniform int numPhotons[8];
 			uniform int index;
+			uniform float texWidth;
 			//const int cIndex = index;
 			
 			//samplers
@@ -374,7 +375,7 @@
 				int cSide;
 				vec3 norm;
 				
-				if(hit)
+				/*if(hit)
 				{
 					//get shape hit and normal					
 					if (currentShape == 0)
@@ -402,7 +403,7 @@
 					for(int i = 0; i < 128; i++ )
 					{
 						if(photonsFound > 10) break; 						
-						float photon = float(i)/128.0;
+						float photon = float(i)/texWidth;
 						vec3 photonPos = vec3(texture2D(tPos, vec2(texShape, photon)));
 						//rescale vals
 						photonPos *= 255.0;
@@ -426,7 +427,7 @@
 						}
 					}
 					gl_FragColor = vec4(accumColor, 1.0);					
-				}
+				}*/
 				
 				/*if (hit)
 				{					
@@ -505,7 +506,7 @@
       					gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
 				}*/
 				
-				//gl_FragColor = texture2D(tPos, vUv);
+				gl_FragColor = texture2D(tPwr, vUv);
 				//gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
  			}
 		</script>
@@ -616,7 +617,7 @@
 			//Photon Mapping
 			//-------------------------------------------------------------------------------------//			
 			//texture globals
-			var tW = 8, tH = 128, depth = 3; // texture dims
+			var tW = 128, tH = 8, depth = 3; // texture dims
 			var size = tW*tH*depth;
 			//texture arrays
 			var posTexArray = new Uint8Array(size), dirTexArray = new Uint8Array(size), pwrTexArray = new Uint8Array(size);
@@ -1156,6 +1157,11 @@
 				
 				uniforms =
 				{
+					texWidth:
+					{
+						type: "f",
+						value: tW
+					},
 					index:
 					{
 						type: "i",
