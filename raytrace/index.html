@@ -755,6 +755,7 @@
 								//reflect photon & adjust slightly
 								nDir = reflect(pDir, norm);
 								pPos = vectAdd(hitPos, vectMul(nDir,epsilon));
+								pDir = vCopy(nDir);
 							}
 							else if(fate == TRANSMIT && currentShape != 0)//cube cant transmit
 							{
@@ -790,7 +791,7 @@
 								}
 								break;
 							}
-							pPos = vCopy(hitPos);
+							//pPos = vCopy(hitPos);
 							bounces++;							
 						}
 					}
@@ -1141,14 +1142,11 @@
 				//Caustic tex's
 				//-------------------------------------------------------------------------------------//
 			}*/
-			var perspCamera, photonScene, photonMat, photonGeom, lines;
+			var perspCamera, photonScene, photonMat, photonGeom, lines, perspControls;
 			
 			
 			function buildGeometry()
-			{
-				//update material
-				photonMat = new THREE.LineBasicMaterial({color: 0x0000ff});
-				
+			{				
 				//for each shape
 				for(var i = 0; i < posViz.length; i++)
 				{
@@ -1182,6 +1180,7 @@
 				perspCamera = new THREE.PerspectiveCamera(45, w / h, 1, 500);
 				perspCamera.position.set(0, 0, 5);
 				perspCamera.lookAt(new THREE.Vector3(0, 0, 0));
+				perspControls = new THREE.TrackballControls( perspCamera, renderer.domElement );		
 				//photon vis scene
 				photonScene = new THREE.Scene();
 				//line mat
@@ -1360,6 +1359,7 @@
 				requestAnimationFrame( animate );
 				stats.update();
 				controls.update();
+				perspControls.update();
 				render();				
 			}						
 
