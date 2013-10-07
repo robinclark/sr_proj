@@ -375,7 +375,7 @@
 				int cSide;
 				vec3 norm;
 				
-				if(hit)
+				/*if(hit)
 				{
 					//get shape hit and normal					
 					if (currentShape == 0)
@@ -399,10 +399,11 @@
 					texShapeIndex = (8.0-(float(texShape)+1.0))/8.0;
 					
 					int photonsFound = 0;
-					vec3 accumColor;
-					for(int i = 0; i < 128; i++ )
+					vec3 accumColor = vec3(0.0, 0.0, 0.0);
+					vec3 tCol;
+					for(int i = 0; i < 1024; i++ )
 					{
-						if(photonsFound > 1) break; 						
+						//if(photonsFound > 30) break; 						
 						float photon = float(i)/texWidth;
 						//get position
 						vec3 photonPos = vec3(texture2D(tPos, vec2(photon, texShapeIndex)));
@@ -424,16 +425,20 @@
 							photonDir = normalize(photonDir);
 							
 							
-							//accumColor += dot(photonDir, norm)*photonPwr;
-							accumColor = vec3(0.0, 1.0, 0.0);
+							accumColor += dot(photonDir, norm)*photonPwr;
+							//accumColor = vec3(0.0, 1.0, 0.0);
+							//tCol = dot(photonDir, norm);
+							//tCol = photonPwr*dot(photonDir, norm)*200.0;
+							//break;
 						}
 					}
-					gl_FragColor = vec4(accumColor, 1.0);					
+					gl_FragColor = vec4(accumColor, 1.0);
+					//gl_FragColor = vec4(tCol, 1.0);
 				}
 				else
 				{
 					gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
-				}
+				}*/
 				
 				/*if (hit)
 				{					
@@ -513,7 +518,7 @@
 				}*/
 				
 				//gl_FragColor = texture2D(tDir, vUv);
-				//gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+				gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
 				//gl_FragColor = texture2D(tDir, vec2((6.0/128.0), 0.125));
  			}
 		</script>
@@ -624,17 +629,18 @@
 			//Photon Mapping
 			//-------------------------------------------------------------------------------------//			
 			//texture globals
-			var tW = 128, tH = 8, depth = 3; // texture dims
+			var tW = 1024, tH = 8, depth = 3; // texture dims
 			var size = tW*tH*depth;
 			//texture arrays
 			var posTexArray = new Uint8Array(size), dirTexArray = new Uint8Array(size), pwrTexArray = new Uint8Array(size);
 			var posTex, dirTex, pwrTex;
+			var posViz = [], dirViz = [], pwrViz = [];
 			//--store # photons on each shape
 			var TOP = 0, BOTTOM = 1, RIGHT = 2, LEFT = 3, FRONT = 4, BACK = 5, SPHERE1 = 6;//array indices
 			var numberPhotons = [0, 0, 0, 0, 0, 0, 0];
 			
 			//photon globals
-			var NUM_PHOTONS = 100;
+			var NUM_PHOTONS = 1000;
 			var maxBounces = 3;		
 			var powerScale = 1;
 			
@@ -739,10 +745,12 @@
 									storePhoton(pPos, pDir, pPwr, (currentShape+5));
 								}							
 
+								addViz(pPos, pDir, pPwr);
 								
 								//scale photon power
 								pPwr = vMultComponent(pPwr, shapeDiffuse);
 								pPwr = vDivide(pPwr,powerScale);
+								pPwr = vectMul(pPwr, 100);/*scaling up pwr*/
 								
 								//reflect photon & adjust slightly
 								nDir = reflect(pDir, norm);
@@ -770,6 +778,7 @@
 							}
 							else //absorbed
 							{
+								addViz(pPos, pDir, pPwr);
 								//get shape & store
 								if (currentShape == 0)
 								{
@@ -786,6 +795,13 @@
 						}
 					}
 				}
+			}
+			
+			function addViz(pos, dir, pwr)
+			{
+				posViz.push(pos);
+				dirViz.push(dir);
+				pwrViz.push(pwr);
 			}
 			
 			function buildTextures()
@@ -842,9 +858,9 @@
 				posTexArray[index+1] = pos.y*127+127;
 				posTexArray[index+2] = pos.z*127+127;
 
-				dirTexArray[index] = dir.x+127;
-				dirTexArray[index+1] = dir.y+127;
-				dirTexArray[index+2] = dir.z+127;
+				dirTexArray[index] = dir.x*127+127;
+				dirTexArray[index+1] = dir.y*127+127;
+				dirTexArray[index+2] = dir.z*127+127;
 
 				pwrTexArray[index] = pwr.x*255;
 				pwrTexArray[index+1] = pwr.y*255;
@@ -1125,7 +1141,26 @@
 				//Caustic tex's
 				//-------------------------------------------------------------------------------------//
 			}*/
-
+			var perspCamera, photonScene, photonMat, photonGeom, lines;
+			
+			
+			function buildGeometry()
+			{
+				//update material
+				photonMat = new THREE.LineBasicMaterial({color: 0x0000ff});
+				
+				//for each shape
+				for(var i = 0; i < posViz.length; i++)
+				{
+					var scale = 0.25;
+					var a = vCopy(posViz[i]);
+					var m = vectMul(dirViz[i], .25);
+					var b = vectAdd(a, m);
+					
+					photonGeom.vertices.push(new THREE.Vector3(a.x, a.y, a.z));
+					photonGeom.vertices.push(new THREE.Vector3(b.x, b.y, b.z));
+				}
+			}
 			//-------------------------------------------------------------------------------------//
 			//Init 
 			//-------------------------------------------------------------------------------------//
@@ -1141,7 +1176,24 @@
 				lookDir = {x: 0, y: 0, z: 0};
 				camUp = {x: 0, y: 1, z: 0};
 				origin = {x: 0, y: 0, z: 0};			
-				center = {x: 0, y: 0, z: 0};				
+				center = {x: 0, y: 0, z: 0};
+				
+				//photon viz cam
+				perspCamera = new THREE.PerspectiveCamera(45, w / h, 1, 500);
+				perspCamera.position.set(0, 0, 5);
+				perspCamera.lookAt(new THREE.Vector3(0, 0, 0));
+				//photon vis scene
+				photonScene = new THREE.Scene();
+				//line mat
+				photonMat = new THREE.LineBasicMaterial({color: 0x0000ff});
+				photonGeom = new THREE.Geometry();
+				
+				scatterPhotons(100);
+				
+				buildGeometry();
+				lines = new THREE.Line(photonGeom, material, THREE.LinePieces);
+				photonScene.add(lines);
+				
 				
 				//camera
 				cameraRTT = new THREE.OrthographicCamera( w / - 2, w / 2, h  / 2, h / - 2, -10000, 10000 );
@@ -1163,7 +1215,7 @@
 
 				//scatter photons
 				scatterPhotons(100);
-				buildTextures();
+				buildGeometry();
 				
 				uniforms =
 				{
@@ -1360,8 +1412,10 @@
 				//renderer.setScissor(left, bottom, 640, 400);
 				//renderer.enableScissorTest ( true )*/
 
-				renderer.render( sceneRTT, cameraRTT );		
+				//renderer.render( sceneRTT, cameraRTT );		
 				//renderer.render( sampleTexScreen, cameraRTT );
+				renderer.render(photonScene, perspCamera);
+				
 			}
 
 			//-------------------------------------------------------------------------------------//
@@ -1373,12 +1427,12 @@
              			z: v1.x*v2.y - v2.x*v1.y };
   			}
 
-  			//return rand dir (components from -127 to 127)
+  			//return rand dir (components from -1 to 1)
 			function rand3()
 			{
-				var vX = Math.random()*255-127;
-				var vY = Math.random()*255-127;
-				var vZ = Math.random()*255-127;
+				var vX = Math.random()*2-1;
+				var vY = Math.random()*2-1;
+				var vZ = Math.random()*2-1;
 				
 				return {x: vX, y: vY, z: vZ};
 			}
@@ -1482,7 +1536,7 @@
 			//-------------------------------------------------------------------------------------//
 			//Start Program
 			//-------------------------------------------------------------------------------------//
-			testVecFunctions();
+			//testVecFunctions();
 			//testIntersections();
 			//testPhoton();
 			init();
