@@ -1142,24 +1142,48 @@
 				//Caustic tex's
 				//-------------------------------------------------------------------------------------//
 			}*/
-			var perspCamera, photonScene, photonMat, photonGeom, lines, perspControls;
+			var perspCamera, photonScene, photonMat, lines, perspControls, photonColor;
 			
 			
 			function buildGeometry()
-			{				
+			{
+				scatterPhotons(100);
+				
 				//for each shape
 				for(var i = 0; i < posViz.length; i++)
 				{
-					var scale = 0.25;
 					var a = vCopy(posViz[i]);
 					var m = vectMul(dirViz[i], .25);
 					var b = vectAdd(a, m);
 					
+					var photonGeom = new THREE.Geometry();
 					photonGeom.vertices.push(new THREE.Vector3(a.x, a.y, a.z));
 					photonGeom.vertices.push(new THREE.Vector3(b.x, b.y, b.z));
+					
+					//get photon color
+					var r, g, b;
+					r = pwrViz[i].x*255*70;
+					g = pwrViz[i].y*255*70;
+					b = pwrViz[i].z*255*70;
+					var col = "rgb(" + Math.floor(r) + "," + Math.floor(g) + "," + Math.floor(b) + ")";
+					//var col = "rgb(255,0,0)";
+					photonColor = new THREE.Color(col);	
+					photonMat = new THREE.LineBasicMaterial({color: photonColor});//{color: "0x0000ff"});
+					
+					lines = new THREE.Line(photonGeom, photonMat, THREE.LinePieces);
+					photonScene.add(lines);
 				}
 			}
-			var photonColor;
+			function initViz()
+			{
+				//photon viz cam
+				perspCamera = new THREE.PerspectiveCamera(45, w / h, 1, 500);
+				perspCamera.position.set(0, 0, 5);
+				perspCamera.lookAt(new THREE.Vector3(0, 0, 0));
+				perspControls = new THREE.TrackballControls( perspCamera, renderer.domElement );		
+				//photon vis scene
+				photonScene = new THREE.Scene();			
+			}
 			//-------------------------------------------------------------------------------------//
 			//Init 
 			//-------------------------------------------------------------------------------------//
@@ -1178,7 +1202,7 @@
 				center = {x: 0, y: 0, z: 0};
 				
 				//photon viz cam
-				perspCamera = new THREE.PerspectiveCamera(45, w / h, 1, 500);
+				/*perspCamera = new THREE.PerspectiveCamera(45, w / h, 1, 500);
 				perspCamera.position.set(0, 0, 5);
 				perspCamera.lookAt(new THREE.Vector3(0, 0, 0));
 				perspControls = new THREE.TrackballControls( perspCamera, renderer.domElement );		
@@ -1193,7 +1217,9 @@
 				
 				buildGeometry();
 				lines = new THREE.Line(photonGeom, photonMat, THREE.LinePieces);
-				photonScene.add(lines);
+				photonScene.add(lines);*/
+				initViz();
+				buildGeometry();
 				
 				
 				//camera
