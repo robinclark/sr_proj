@@ -403,7 +403,7 @@
 					vec3 tCol;
 					for(int i = 0; i < 1024; i++ )
 					{
-						//if(photonsFound > 30) break; 						
+						if(photonsFound > 1) break; 						
 						float photon = float(i)/texWidth;
 						//get position
 						vec3 photonPos = vec3(texture2D(tPos, vec2(photon, texShapeIndex)));
@@ -413,7 +413,7 @@
 						photonPos = normalize(photonPos);
 						
 						if(photonPos.x == 0.0 && photonPos.y == 0.0 && photonPos.z == 0.0) break;
-						if(gatedSqDist(sP, photonPos, 0.7))
+						if(gatedSqDist(sP, photonPos, 2.0))
 						{
 							photonsFound++;
 							//get dir & pwr
@@ -425,8 +425,8 @@
 							photonDir = normalize(photonDir);
 							
 							
-							accumColor += dot(photonDir, norm)*photonPwr;
-							//accumColor = vec3(0.0, 1.0, 0.0);
+							//accumColor += dot(photonDir, norm)*photonPwr;
+							accumColor = vec3(0.0, 1.0, 0.0);
 							//tCol = dot(photonDir, norm);
 							//tCol = photonPwr*dot(photonDir, norm)*200.0;
 							//break;
@@ -518,7 +518,7 @@
 				}*/
 				
 				//gl_FragColor = texture2D(tDir, vUv);
-				gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+				//gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
 				//gl_FragColor = texture2D(tDir, vec2((6.0/128.0), 0.125));
  			}
 		</script>
@@ -659,7 +659,7 @@
 			function scatterPhotons(n)
 			{			
 				var hit = false;
-				pPwr = vDivide(l1Col, n);
+				pPwr = vDivide(l1Col, 50);
 
 				for(var i = 0; i < n; i++)
 				{
@@ -745,12 +745,12 @@
 									storePhoton(pPos, pDir, pPwr, (currentShape+5));
 								}							
 
-								addViz(pPos, pDir, pPwr);
+								addViz(hitPos, nDir, pPwr);
 								
 								//scale photon power
 								pPwr = vMultComponent(pPwr, shapeDiffuse);
 								pPwr = vDivide(pPwr,powerScale);
-								pPwr = vectMul(pPwr, 100);/*scaling up pwr*/
+								//pPwr = vectMul(pPwr, 100);/*scaling up pwr*/
 								
 								//reflect photon & adjust slightly
 								nDir = reflect(pDir, norm);
@@ -779,7 +779,7 @@
 							}
 							else //absorbed
 							{
-								addViz(pPos, pDir, pPwr);
+								addViz(hitPos, nDir, pPwr);
 								//get shape & store
 								if (currentShape == 0)
 								{
@@ -789,7 +789,7 @@
 								{
 									storePhoton(pPos, pDir, pPwr, (currentShape+5));
 								}
-								break;
+								bounces = maxBounces;
 							}
 							//pPos = vCopy(hitPos);
 							bounces++;							
@@ -1159,6 +1159,7 @@
 					photonGeom.vertices.push(new THREE.Vector3(b.x, b.y, b.z));
 				}
 			}
+			var photonColor;
 			//-------------------------------------------------------------------------------------//
 			//Init 
 			//-------------------------------------------------------------------------------------//
@@ -1184,13 +1185,14 @@
 				//photon vis scene
 				photonScene = new THREE.Scene();
 				//line mat
-				photonMat = new THREE.LineBasicMaterial({color: 0x0000ff});
+				photonColor = new THREE.Color("rgb(255,0,0)");	
+				photonMat = new THREE.LineBasicMaterial(photonColor);//{color: "0x0000ff"});
 				photonGeom = new THREE.Geometry();
 				
 				scatterPhotons(100);
 				
 				buildGeometry();
-				lines = new THREE.Line(photonGeom, material, THREE.LinePieces);
+				lines = new THREE.Line(photonGeom, photonMat, THREE.LinePieces);
 				photonScene.add(lines);
 				
 				
@@ -1213,8 +1215,8 @@
 				rtTexture = new THREE.WebGLRenderTarget( 512, 512, { minFilter: THREE.LinearFilter, magFilter: THREE.NearestFilter, format: THREE.RGBFormat } );	
 
 				//scatter photons
-				scatterPhotons(100);
-				buildGeometry();
+				//scatterPhotons(100);
+				//buildGeometry();
 				
 				uniforms =
 				{
