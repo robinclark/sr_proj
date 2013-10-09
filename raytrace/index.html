@@ -605,7 +605,7 @@
 			var spheres = [];
 
 			var s1Pos = {x: 0, y: 0, z:0};
-			var s1Diffuse = {x: 0.76, y: 0.75, z:0.5};
+			var s1Diffuse = {x: 0, y: 0, z:1};//{x: 0.76, y: 0.75, z:0.5};
 			var s1Refl = 0;
 			var s1Transp = 0;
 
@@ -659,23 +659,27 @@
 			function scatterPhotons(n)
 			{			
 				var hit = false;
-				pPwr = vDivide(l1Col, 50);
-
+				//pPwr = vDivide(l1Col, 50);
 				for(var i = 0; i < n; i++)
 				{
+					//init bounces
 					var bounces = 1;
 
 					//gen rand dir
 					pDir = rand3();
+					var nDir = normalize(pDir);
 					
 					//starting pos is light source
 					pPos = vCopy(l1Pos);
+					
+					//starting pwr
+					pPwr = vCopy(l1Col);
 					
 					//while photon has intersected something and hasn't bounced 3 times
 					while(bounces <= maxBounces)//add caustics later
 					{	
 						//intersect with scene
-						var nDir = normalize(pDir);
+						
 						/*if (typeof nDir === undefined || typeof pos === undefined)
 						{
 							alert("ndir undefined");
@@ -696,7 +700,7 @@
 							{
 								norm = normalize(vectSub(hitPos, spheres[currentShape-1].pos));
 								shapeDiffuse = spheres[currentShape-1].diffuse;
-								roulette(shapeDiffuse, spheres[currentShape-1].transparency);
+								roulette(shapeDiffuse, 0);//spheres[currentShape-1].transparency);//add transmission later 
 
 								//compute shadow photon
 								//--save current intersection info								
@@ -720,12 +724,12 @@
 											storePhoton(pPos, pDir, shadowPwr, (currentShape+5));
 										}	
 									}
-								}*/
+								}
 
 								//--restore inters info
 								currentShape = tShape;
 								hitPos = tPos;
-								dist = tDist;								
+								dist = tDist;	*/							
 							}
 							else
 							{
@@ -734,15 +738,17 @@
 
 
 							if(fate == DIFFUSE)//diffusely reflected
-							{								
+							{
+								console.log(pPwr);
+								//alert("hello");
 								//get shape & store
 								if (currentShape == 0)
 								{
-									storePhoton(pPos, pDir, pPwr, cSide);
+									storePhoton(hitPos, nDir, pPwr, cSide);
 								}
 								else
 								{
-									storePhoton(pPos, pDir, pPwr, (currentShape+5));
+									storePhoton(hitPos, nDir, pPwr, (currentShape+5));
 								}							
 
 								addViz(hitPos, nDir, pPwr);
@@ -753,7 +759,8 @@
 								//pPwr = vectMul(pPwr, 100);/*scaling up pwr*/
 								
 								//reflect photon & adjust slightly
-								nDir = reflect(pDir, norm);
+								//console.log(pPwr);
+								nDir = reflect(nDir, norm);
 								pPos = vectAdd(hitPos, vectMul(nDir,epsilon));
 								pDir = vCopy(nDir);
 							}
@@ -774,20 +781,24 @@
 								}								
 								else
 								{
-									break;
+								//	alert("break");
+									bounces = maxBounces;
+									//break;
 								}
 							}
 							else //absorbed
 							{
 								addViz(hitPos, nDir, pPwr);
+								//console.log(pPwr);
+								//alert("hello");
 								//get shape & store
 								if (currentShape == 0)
 								{
-									storePhoton(pPos, pDir, pPwr, cSide);
+									storePhoton(hitPos, nDir, pPwr, cSide);
 								}
 								else
 								{
-									storePhoton(pPos, pDir, pPwr, (currentShape+5));
+									storePhoton(hitPos, nDir, pPwr, (currentShape+5));
 								}
 								bounces = maxBounces;
 							}
@@ -1033,6 +1044,29 @@
 				}
 			}
 			
+			function testCubeColor()
+			{			
+				var sides =
+				{
+					up : {x: 0, y: 1, z: 0},
+					down : {x: 0, y: -1, z: 0},
+					left : {x: -1, y: 0, z: 0},
+					right : {x: 1, y: 0, z: 0},
+					front : {x: 0, y: 0, z: 1},
+					back : {x: 0, y: 0, z: -1}
+				};
+				
+				/*for(var prop in sides)
+				{
+					//console.log("dir: %O, color: %O", prop, intersectCube({x: 0, y: 0, z: 0}, prop, cubeMin, cubeMax));
+					console.log("hello");
+				}*/
+				//console.log("hello");
+				//console.log()
+				
+				
+			}
+			
 			function intersectSphere(pos, rStart, rDir)
 			{
 				//vec3 c = pos - rStart;
@@ -1147,7 +1181,7 @@
 			
 			function buildGeometry()
 			{
-				scatterPhotons(100);
+				scatterPhotons(1000);
 				
 				//for each shape
 				for(var i = 0; i < posViz.length; i++)
@@ -1162,9 +1196,9 @@
 					
 					//get photon color
 					var r, g, b;
-					r = pwrViz[i].x*255*70;
-					g = pwrViz[i].y*255*70;
-					b = pwrViz[i].z*255*70;
+					r = pwrViz[i].x*255;
+					g = pwrViz[i].y*255;
+					b = pwrViz[i].z*255;
 					var col = "rgb(" + Math.floor(r) + "," + Math.floor(g) + "," + Math.floor(b) + ")";
 					//var col = "rgb(255,0,0)";
 					photonColor = new THREE.Color(col);	
@@ -1188,6 +1222,7 @@
 			//Init 
 			//-------------------------------------------------------------------------------------//
 			function init() {
+				//console.log("init");
 				container = document.getElementById( 'container' );
 
 				renderer = new THREE.WebGLRenderer();
@@ -1567,6 +1602,7 @@
 			//testVecFunctions();
 			//testIntersections();
 			//testPhoton();
+			//testCubeColor();
 			init();
 			animate();
 
