@@ -51,7 +51,6 @@
 			uniform int numPhotons[8];
 			uniform int index;
 			uniform float texWidth;
-			uniform float texHeight;
 			//const int cIndex = index;
 			
 			//samplers
@@ -313,7 +312,7 @@
 					norm = vec3(-1.0, 0.0, 0.0);
 					//return {x: -1.0, y: 0.0, z: 0.0};
 				}
-				else if(p.x > (cubeMax.x - epsilon))//right
+				else if(p.x > (cubeMin.x - epsilon))//right
 				{
 					cSide = 3;
 					norm = vec3(1.0, 0.0, 0.0);
@@ -325,7 +324,7 @@
 					norm = vec3(0.0, -1.0, 0.0);
 					//return {x:0.0, y:-1.0, z:0.0};
 				}
-				else if(p.y > (cubeMax.y - epsilon))//top
+				else if(p.y > (cubeMin.y - epsilon))//top
 				{
 					cSide = 0;
 					norm = vec3(0.0, 1.0, 0.0);
@@ -376,11 +375,7 @@
 				int cSide;
 				vec3 norm;
 				
-				vec2 size = vec2(texWidth, texHeight);
-				vec2 sizeInv = 1.0/size;
-				//vec2 st = (vec2(0.0, 0.0)+0.5)*sizeInv;
-				
-				if(hit)
+				/*if(hit)
 				{
 					//get shape hit and normal					
 					if (currentShape == 0)
@@ -400,54 +395,50 @@
 						texShape = currentShape+5;
 					}
 					
-					vec3 accumColor = vec3(0.0, 0.0, 0.0);
-					
-					//get shape v coord
-					texShapeIndex = 7.0-float(texShape);
-					
-					//u coordinate
-					int photon;
+					//find closest 10 photons w/in sq rad 0.7
+					texShapeIndex = (8.0-(float(texShape)+1.0))/8.0;
 					
 					int photonsFound = 0;
-
-					for(int i = 0; i < 128; i++ )
+					vec3 accumColor = vec3(0.0, 0.0, 0.0);
+					vec3 tCol;
+					for(int i = 0; i < 1024; i++ )
 					{
-						if(photonsFound > 1) break; 						
-						//photon = float(i)/texWidth;//u coord
-						vec2 st = (vec2(float(i), texShapeIndex)+ 0.5)*sizeInv;
+						//if(photonsFound > 30) break; 						
+						float photon = float(i)/texWidth;
 						//get position
-						//vec3 photonPos = vec3(texture2D(tPos, vec2(photon, texShapeIndex)));
-						vec3 photonPos = vec3(texture2D(tPos, st));
-						if(photonPos.x == 0.0 && photonPos.y == 0.0 && photonPos.z == 0.0) break;
-						//rescale pos
+						vec3 photonPos = vec3(texture2D(tPos, vec2(photon, texShapeIndex)));
+						//rescale vals
 						photonPos *= 255.0;
 						photonPos -= 127.0;
-						photonPos /= 127.0;
+						photonPos = normalize(photonPos);
 						
-						if(gatedSqDist(sP, photonPos, 0.07))//find closest 10 photons w/in sq rad 0.7
+						if(photonPos.x == 0.0 && photonPos.y == 0.0 && photonPos.z == 0.0) break;
+						if(gatedSqDist(sP, photonPos, 0.7))
 						{
 							photonsFound++;
 							//get dir & pwr
-							//vec3 photonPwr = vec3(texture2D(tPwr, vec2(photon, texShapeIndex)));
-							//vec3 photonDir = vec3(texture2D(tDir, vec2(photon, texShapeIndex)));
-							vec3 photonPwr = vec3(texture2D(tPwr, st));
-							vec3 photonDir = vec3(texture2D(tDir, st));
-							//rescale dir
+							vec3 photonDir = vec3(texture2D(tDir, vec2(photon, texShapeIndex)));
+							vec3 photonPwr = vec3(texture2D(tPwr, vec2(photon, texShapeIndex)));
+							//rescale vals
 							photonDir *= 255.0;
 							photonDir -= 127.0;
 							photonDir = normalize(photonDir);
 							
-							//accumColor += dot(photonDir, norm)*photonPwr;
-							accumColor = vec3(0.0, 1.0, 0.0);
+							
+							accumColor += dot(photonDir, norm)*photonPwr;
+							//accumColor = vec3(0.0, 1.0, 0.0);
+							//tCol = dot(photonDir, norm);
+							//tCol = photonPwr*dot(photonDir, norm)*200.0;
+							//break;
 						}
 					}
 					gl_FragColor = vec4(accumColor, 1.0);
+					//gl_FragColor = vec4(tCol, 1.0);
 				}
 				else
 				{
-					gl_FragColor = vec4(0.0, 0.5, 0.5, 1.0);
-				}
-				
+					gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+				}*/
 				
 				/*if (hit)
 				{					
@@ -525,17 +516,9 @@
 				{
       					gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
 				}*/
-				//texShapeIndex = (8.0-0.0+1.0))/8.0;
-				//float photon = 0.0;
-				//vec3 photonPos = vec3(texture2D(tPos, vec2(photon, texShapeIndex)));
-				/*photonPos *= 255.0;
-				photonPos -= 127.0;
-				photonPos /= 127.0;*/				
 				
-				//gl_FragColor = texture2D(tPwr, st);
-				//gl_FragColor = texture2D(tPwr, (vec2(0.0, 7.0)+0.5)*sizeInv);
-				//gl_FragColor = texture2D(tPwr, vUv);
-				//gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+				//gl_FragColor = texture2D(tDir, vUv);
+				gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
 				//gl_FragColor = texture2D(tDir, vec2((6.0/128.0), 0.125));
  			}
 		</script>
@@ -622,7 +605,7 @@
 			var spheres = [];
 
 			var s1Pos = {x: 0, y: 0, z:0};
-			var s1Diffuse = {x: 0, y: 0, z:1};//{x: 0.76, y: 0.75, z:0.5};
+			var s1Diffuse = {x: 0.76, y: 0.75, z:0.5};
 			var s1Refl = 0;
 			var s1Transp = 0;
 
@@ -646,7 +629,7 @@
 			//Photon Mapping
 			//-------------------------------------------------------------------------------------//			
 			//texture globals
-			var tW = 128, tH = 8, depth = 3; // texture dims
+			var tW = 1024, tH = 8, depth = 3; // texture dims
 			var size = tW*tH*depth;
 			//texture arrays
 			var posTexArray = new Uint8Array(size), dirTexArray = new Uint8Array(size), pwrTexArray = new Uint8Array(size);
@@ -654,7 +637,7 @@
 			var posViz = [], dirViz = [], pwrViz = [];
 			//--store # photons on each shape
 			var TOP = 0, BOTTOM = 1, RIGHT = 2, LEFT = 3, FRONT = 4, BACK = 5, SPHERE1 = 6;//array indices
-			var numberPhotons = [0, 0, 0, 0, 0, 0, 0, 0];
+			var numberPhotons = [0, 0, 0, 0, 0, 0, 0];
 			
 			//photon globals
 			var NUM_PHOTONS = 1000;
@@ -676,27 +659,23 @@
 			function scatterPhotons(n)
 			{			
 				var hit = false;
-				//pPwr = vDivide(l1Col, 50);
+				pPwr = vDivide(l1Col, n);
+
 				for(var i = 0; i < n; i++)
 				{
-					//init bounces
 					var bounces = 1;
 
 					//gen rand dir
 					pDir = rand3();
-					var nDir = normalize(pDir);
 					
 					//starting pos is light source
 					pPos = vCopy(l1Pos);
-					
-					//starting pwr
-					pPwr = vCopy(l1Col);
 					
 					//while photon has intersected something and hasn't bounced 3 times
 					while(bounces <= maxBounces)//add caustics later
 					{	
 						//intersect with scene
-						
+						var nDir = normalize(pDir);
 						/*if (typeof nDir === undefined || typeof pos === undefined)
 						{
 							alert("ndir undefined");
@@ -717,7 +696,7 @@
 							{
 								norm = normalize(vectSub(hitPos, spheres[currentShape-1].pos));
 								shapeDiffuse = spheres[currentShape-1].diffuse;
-								roulette(shapeDiffuse, 0);//spheres[currentShape-1].transparency);//add transmission later 
+								roulette(shapeDiffuse, spheres[currentShape-1].transparency);
 
 								//compute shadow photon
 								//--save current intersection info								
@@ -741,12 +720,12 @@
 											storePhoton(pPos, pDir, shadowPwr, (currentShape+5));
 										}	
 									}
-								}
+								}*/
 
 								//--restore inters info
 								currentShape = tShape;
 								hitPos = tPos;
-								dist = tDist;	*/							
+								dist = tDist;								
 							}
 							else
 							{
@@ -755,32 +734,28 @@
 
 
 							if(fate == DIFFUSE)//diffusely reflected
-							{
-								
-								//alert("hello");
+							{								
 								//get shape & store
 								if (currentShape == 0)
 								{
-									storePhoton(hitPos, nDir, pPwr, cSide);
+									storePhoton(pPos, pDir, pPwr, cSide);
 								}
 								else
 								{
-									storePhoton(hitPos, nDir, pPwr, (currentShape+5));
+									storePhoton(pPos, pDir, pPwr, (currentShape+5));
 								}							
 
-								addViz(hitPos, nDir, pPwr);
+								addViz(pPos, pDir, pPwr);
 								
 								//scale photon power
 								pPwr = vMultComponent(pPwr, shapeDiffuse);
 								pPwr = vDivide(pPwr,powerScale);
-								//pPwr = vectMul(pPwr, 100);/*scaling up pwr*/
+								pPwr = vectMul(pPwr, 100);/*scaling up pwr*/
 								
 								//reflect photon & adjust slightly
-								//console.log(pPwr);
-								nDir = reflect(nDir, norm);
+								nDir = reflect(pDir, norm);
 								pPos = vectAdd(hitPos, vectMul(nDir,epsilon));
 								pDir = vCopy(nDir);
-								//console.log(hitPos);
 							}
 							else if(fate == TRANSMIT && currentShape != 0)//cube cant transmit
 							{
@@ -799,34 +774,28 @@
 								}								
 								else
 								{
-								//	alert("break");
-									bounces = maxBounces;
-									//break;
+									break;
 								}
 							}
 							else //absorbed
 							{
-								addViz(hitPos, nDir, pPwr);
-								//console.log(hitPos);
-								//alert("hello");
+								addViz(pPos, pDir, pPwr);
 								//get shape & store
 								if (currentShape == 0)
 								{
-									storePhoton(hitPos, nDir, pPwr, cSide);
+									storePhoton(pPos, pDir, pPwr, cSide);
 								}
 								else
 								{
-									storePhoton(hitPos, nDir, pPwr, (currentShape+5));
+									storePhoton(pPos, pDir, pPwr, (currentShape+5));
 								}
-								bounces = maxBounces;
+								break;
 							}
 							//pPos = vCopy(hitPos);
 							bounces++;							
 						}
 					}
 				}
-				buildTextures();
-				buildGeometry();
 			}
 			
 			function addViz(pos, dir, pwr)
@@ -898,7 +867,6 @@
 				pwrTexArray[index+1] = pwr.y*255;
 				pwrTexArray[index+2] = pwr.z*255;
 				
-								
 				//increment #photons on surface
 				numberPhotons[shape]++;
 			}
@@ -932,85 +900,8 @@
 				var dir2;
 				dir2 = vCopy(dir1);
 				dir1.x = 8;*/
-			
-				/*if(p.x < (cMin.x + epsilon))//left
-				{
-					cSide = 2;
-					return {x: -1.0, y: 0.0, z: 0.0};
-				}
-				else if(p.x > (cMax.x - epsilon))//right
-				{
-					cSide = 3;
-					return {x:1.0, y:0.0, z:0.0};
-				}
-				else if(p.y < (cMin.y + epsilon))//bottom
-				{
-					cSide = 1;
-					return {x:0.0, y:-1.0, z:0.0};
-				}
-				else if(p.y > (cMax.y - epsilon))//top
-				{
-					cSide = 0;
-					return {x:0.0, y:1.0, z:0.0};
-				}
-				else if(p.z < (cMin.z + epsilon))//back
-				{
-					cSide = 5;
-					return {x:0.0, y:0.0, z:-1.0};
-				}
-				else//front
-				{
-					cSide = 4;
-					return {x:0.0, y:0.0, z:1.0};
-				}
-				 */
-				
-				//4 corners and all sides
-				var up = newVec(0,1,0);
-				var down = newVec(0,-1,0);
-				var right = newVec(1,0,0);
-				var left = newVec(-1,0,0);
-				var front = newVec(0,0,1);
-				var back = newVec(0,0,-1);
-				
-				var red = newVec(1, 0, 0);
-				var green = newVec(0, 1, 0);
-				var blue = newVec(0, 0, 1);
-				var cyan = newVec(0, 1, 1);
-				var yellow = newVec(1, 1, 0);
-				var purple = newVec(1, 0, 1);
-				var black = newVec(0, 0, 0);
-				
-				var center = newVec(0.3, 0.3, 0.0);
-				//var topRight = newVec(1, 1, 1);				
-				storePhoton(up, up, red, 0);
-				storePhoton(down, down, black, 1);
-				storePhoton(left, left, red, 2);
-				storePhoton(right, right, black, 3);
-				storePhoton(front, front, purple, 4);
-				storePhoton(back, back, yellow, 5);
-				storePhoton(center, center, red, 6);
-				//storePhoton(center, center, black, 7);
-				
-				//storePhoton(topRight, topRight, red, 3);
-				//storePhoton(topRight, topRight, red, 0);
-				//storePhoton(topRight, topRight, red, 4);
-				/*var emptyP = newVec(0,0,0);
-				storePhoton(emptyP, emptyP, red, 0 );
-				storePhoton(emptyP, emptyP, green, 1 );
-				storePhoton(emptyP, emptyP, blue, 2 );
-				storePhoton(emptyP, emptyP, cyan, 3 );//right
-				storePhoton(emptyP, emptyP, yellow, 4 );
-				storePhoton(emptyP, emptyP, purple, 5 );
-				storePhoton(emptyP, emptyP, cyan, 6);*/
-				
-				
 			}
 
-			function newVec(a, b, c) {
-				return {x:a, y:b, z: c};
-			}
-				
 			//-------------------------------------------------------------------------------------//
 			//Intersection
 			//-------------------------------------------------------------------------------------//	
@@ -1142,29 +1033,6 @@
 				}
 			}
 			
-			function testCubeColor()
-			{			
-				var sides =
-				{
-					up : {x: 0, y: 1, z: 0},
-					down : {x: 0, y: -1, z: 0},
-					left : {x: -1, y: 0, z: 0},
-					right : {x: 1, y: 0, z: 0},
-					front : {x: 0, y: 0, z: 1},
-					back : {x: 0, y: 0, z: -1}
-				};
-				
-				/*for(var prop in sides)
-				{
-					//console.log("dir: %O, color: %O", prop, intersectCube({x: 0, y: 0, z: 0}, prop, cubeMin, cubeMax));
-					console.log("hello");
-				}*/
-				//console.log("hello");
-				//console.log()
-				
-				
-			}
-			
 			function intersectSphere(pos, rStart, rDir)
 			{
 				//vec3 c = pos - rStart;
@@ -1274,53 +1142,27 @@
 				//Caustic tex's
 				//-------------------------------------------------------------------------------------//
 			}*/
-			var perspCamera, photonScene, photonMat, lines, perspControls, photonColor;
+			var perspCamera, photonScene, photonMat, photonGeom, lines, perspControls;
 			
 			
 			function buildGeometry()
-			{
-				//scatterPhotons(100);
-				initViz();
+			{				
 				//for each shape
 				for(var i = 0; i < posViz.length; i++)
 				{
+					var scale = 0.25;
 					var a = vCopy(posViz[i]);
 					var m = vectMul(dirViz[i], .25);
 					var b = vectAdd(a, m);
 					
-					var photonGeom = new THREE.Geometry();
 					photonGeom.vertices.push(new THREE.Vector3(a.x, a.y, a.z));
 					photonGeom.vertices.push(new THREE.Vector3(b.x, b.y, b.z));
-					
-					//get photon color
-					var r, g, b;
-					r = pwrViz[i].x*255;
-					g = pwrViz[i].y*255;
-					b = pwrViz[i].z*255;
-					var col = "rgb(" + Math.floor(r) + "," + Math.floor(g) + "," + Math.floor(b) + ")";
-					//var col = "rgb(255,0,0)";
-					photonColor = new THREE.Color(col);	
-					photonMat = new THREE.LineBasicMaterial({color: photonColor});//{color: "0x0000ff"});
-					
-					lines = new THREE.Line(photonGeom, photonMat, THREE.LinePieces);
-					photonScene.add(lines);
 				}
-			}
-			function initViz()
-			{
-				//photon viz cam
-				perspCamera = new THREE.PerspectiveCamera(45, w / h, 1, 500);
-				perspCamera.position.set(0, 0, 5);
-				perspCamera.lookAt(new THREE.Vector3(0, 0, 0));
-				perspControls = new THREE.TrackballControls( perspCamera, renderer.domElement );		
-				//photon vis scene
-				photonScene = new THREE.Scene();			
 			}
 			//-------------------------------------------------------------------------------------//
 			//Init 
 			//-------------------------------------------------------------------------------------//
 			function init() {
-				//console.log("init");
 				container = document.getElementById( 'container' );
 
 				renderer = new THREE.WebGLRenderer();
@@ -1335,26 +1177,21 @@
 				center = {x: 0, y: 0, z: 0};
 				
 				//photon viz cam
-				/*perspCamera = new THREE.PerspectiveCamera(45, w / h, 1, 500);
+				perspCamera = new THREE.PerspectiveCamera(45, w / h, 1, 500);
 				perspCamera.position.set(0, 0, 5);
 				perspCamera.lookAt(new THREE.Vector3(0, 0, 0));
 				perspControls = new THREE.TrackballControls( perspCamera, renderer.domElement );		
 				//photon vis scene
 				photonScene = new THREE.Scene();
 				//line mat
-				photonColor = new THREE.Color("rgb(255,0,0)");	
-				photonMat = new THREE.LineBasicMaterial(photonColor);//{color: "0x0000ff"});
+				photonMat = new THREE.LineBasicMaterial({color: 0x0000ff});
 				photonGeom = new THREE.Geometry();
 				
 				scatterPhotons(100);
 				
 				buildGeometry();
-				lines = new THREE.Line(photonGeom, photonMat, THREE.LinePieces);
-				photonScene.add(lines);*/
-				//scatterPhotons(1000);
-				//initViz();
-				//buildGeometry();
-				
+				lines = new THREE.Line(photonGeom, material, THREE.LinePieces);
+				photonScene.add(lines);
 				
 				
 				//camera
@@ -1375,19 +1212,12 @@
 				//txtre to render to
 				rtTexture = new THREE.WebGLRenderTarget( 512, 512, { minFilter: THREE.LinearFilter, magFilter: THREE.NearestFilter, format: THREE.RGBFormat } );	
 
-				//testPhoton();
-				//buildTextures();
 				//scatter photons
 				scatterPhotons(100);
-				//buildGeometry();
+				buildGeometry();
 				
 				uniforms =
 				{
-					texHeight:
-					{
-						type: "f",
-						value: tH
-					},
 					texWidth:
 					{
 						type: "f",
@@ -1529,7 +1359,7 @@
 				requestAnimationFrame( animate );
 				stats.update();
 				controls.update();
-				//perspControls.update();
+				perspControls.update();
 				render();				
 			}						
 
@@ -1582,9 +1412,9 @@
 				//renderer.setScissor(left, bottom, 640, 400);
 				//renderer.enableScissorTest ( true )*/
 
-				renderer.render( sceneRTT, cameraRTT );		
+				//renderer.render( sceneRTT, cameraRTT );		
 				//renderer.render( sampleTexScreen, cameraRTT );
-				//renderer.render(photonScene, perspCamera);
+				renderer.render(photonScene, perspCamera);
 				
 			}
 
@@ -1709,7 +1539,6 @@
 			//testVecFunctions();
 			//testIntersections();
 			//testPhoton();
-			//testCubeColor();
 			init();
 			animate();
 
