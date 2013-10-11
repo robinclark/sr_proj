@@ -111,7 +111,7 @@
 			{
 				vec3 c = pos - rStart;
 				float b = dot(rDir, c);
-				float d = b*b - dot(c, c) + 0.125;
+				float d = b*b - dot(c, c) + 0.0625;
 				if (d < 0.0) {
   					dist = 10000.0;
   					return false;
@@ -401,6 +401,10 @@
 					}
 					
 					vec3 accumColor = vec3(0.0, 0.0, 0.0);
+					//if(currentShape == 1)
+					//{
+					//	accumColor = vec3(1.0, 0.0, 0.0);
+					//}
 					
 					//get shape v coord
 					texShapeIndex = 7.0-float(texShape);
@@ -424,7 +428,7 @@
 						photonPos -= 127.0;
 						photonPos /= 127.0;
 						
-						if(gatedSqDist(sP, photonPos, 0.07))//find closest 10 photons w/in sq rad 0.7
+						if(gatedSqDist(sP, photonPos, 0.008))//find closest 10 photons w/in sq rad 0.7
 						{
 							photonsFound++;
 							//get dir & pwr
@@ -448,6 +452,7 @@
 					gl_FragColor = vec4(0.0, 0.5, 0.5, 1.0);
 				}
 				
+				//gl_FragColor = vec4(accumColor, 1.0);
 				
 				/*if (hit)
 				{					
@@ -684,6 +689,7 @@
 
 					//gen rand dir
 					pDir = rand3();
+					//pDir = newVec(0.0, -1.0, 0.0);
 					var nDir = normalize(pDir);
 					
 					//starting pos is light source
@@ -768,7 +774,13 @@
 									storePhoton(hitPos, nDir, pPwr, (currentShape+5));
 								}							
 
-								addViz(hitPos, nDir, pPwr);
+								//addViz(hitPos, nDir, pPwr);
+								
+								if(currentShape == 1)//code
+								{
+									addViz(hitPos, nDir, pPwr);
+								}
+								
 								
 								//scale photon power
 								pPwr = vMultComponent(pPwr, shapeDiffuse);
@@ -806,7 +818,13 @@
 							}
 							else //absorbed
 							{
-								addViz(hitPos, nDir, pPwr);
+								//addViz(hitPos, nDir, pPwr);
+								
+								if(currentShape == 1)//code
+								{
+									addViz(hitPos, nDir, pPwr);
+								}
+								
 								//console.log(hitPos);
 								//alert("hello");
 								//get shape & store
@@ -981,16 +999,35 @@
 				var purple = newVec(1, 0, 1);
 				var black = newVec(0, 0, 0);
 				
-				var center = newVec(0.3, 0.3, 0.0);
+				var sphereT = newVec(0.0, 0.26, 0.0);
+				var sphereB = newVec(0.0, -0.26, 0.0);
+				var sphereR = newVec(0.26, 0.0, 0.0);
+				var sphereL = newVec(-0.26, 0.0, 0.0);
+				var sphereF = newVec(0.0, 0.0, 0.26);
+				var sphereB = newVec(0.0, 0.0, -0.26);
+				
 				//var topRight = newVec(1, 1, 1);				
-				storePhoton(up, up, red, 0);
+				/*storePhoton(up, up, red, 0);
 				storePhoton(down, down, black, 1);
 				storePhoton(left, left, red, 2);
 				storePhoton(right, right, black, 3);
 				storePhoton(front, front, purple, 4);
-				storePhoton(back, back, yellow, 5);
-				storePhoton(center, center, red, 6);
+				storePhoton(back, back, yellow, 5);*/
+				//storePhoton(center, center, red, 6);
 				//storePhoton(center, center, black, 7);
+				
+				storePhoton(sphereT, down, red, 6);
+				addViz(sphereT, down, red);
+				storePhoton(sphereB, up, red, 6);
+				addViz(sphereB, up, red, 6);
+				storePhoton(sphereR, left, red, 6);
+				addViz(sphereR, left, red, 6);
+				storePhoton(sphereL, right, red, 6);
+				addViz(sphereL, right, red, 6);
+				storePhoton(sphereF, back, red, 6);
+				addViz(sphereF, back, red, 6);
+				storePhoton(sphereB, front, red, 6);
+				addViz(sphereB, front, red, 6);
 				
 				//storePhoton(topRight, topRight, red, 3);
 				//storePhoton(topRight, topRight, red, 0);
@@ -1165,6 +1202,26 @@
 				
 			}
 			
+			/*bool intersectSphere(vec3 pos, vec3 rStart, vec3 rDir, out float dist)
+			{
+				vec3 c = pos - rStart;
+				float b = dot(rDir, c);
+				float d = b*b - dot(c, c) + 0.0625;
+				if (d < 0.0) {
+  					dist = 10000.0;
+  					return false;
+				}
+
+    			float t1 = b - sqrt(d);
+				//float t2 = b + sqrt(d);
+				
+				if (t1 < 0.0) {
+					return false;
+				}
+				dist = t1;
+				return true;
+  			}	*/
+			
 			function intersectSphere(pos, rStart, rDir)
 			{
 				//vec3 c = pos - rStart;
@@ -1172,7 +1229,7 @@
 				//float d = b*b - dot(c, c) + 0.125;
 				var c = vectSub(pos, rStart);
 				var b = dot(rDir, c);
-				var d = b*b-dot(c,c) + 0.125;
+				var d = b*b-dot(c,c) + 0.0625;
 
 				if (d < 0.0) {
   					dist = 10000.0;
@@ -1353,7 +1410,7 @@
 				photonScene.add(lines);*/
 				//scatterPhotons(1000);
 				//initViz();
-				//buildGeometry();
+				
 				
 				
 				
@@ -1377,8 +1434,13 @@
 
 				//testPhoton();
 				//buildTextures();
+				//buildGeometry();
+				
+				
+				
+				
 				//scatter photons
-				scatterPhotons(100);
+				scatterPhotons(200);
 				//buildGeometry();
 				
 				uniforms =
@@ -1529,7 +1591,7 @@
 				requestAnimationFrame( animate );
 				stats.update();
 				controls.update();
-				//perspControls.update();
+				perspControls.update();
 				render();				
 			}						
 
