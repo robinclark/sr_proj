@@ -310,36 +310,36 @@
 				if(p.x < (cubeMin.x + epsilon))//left
 				{
 					cSide = 2;
-					norm = vec3(-1.0, 0.0, 0.0);
+					norm = -vec3(-1.0, 0.0, 0.0);
 					//return {x: -1.0, y: 0.0, z: 0.0};
 				}
 				else if(p.x > (cubeMax.x - epsilon))//right
 				{
 					cSide = 3;
-					norm = vec3(1.0, 0.0, 0.0);
+					norm = -vec3(1.0, 0.0, 0.0);
 					//return {x:1.0, y:0.0, z:0.0};
 				}
 				else if(p.y < (cubeMin.y + epsilon))//bottom
 				{
 					cSide = 1;
-					norm = vec3(0.0, -1.0, 0.0);
+					norm = -vec3(0.0, -1.0, 0.0);
 					//return {x:0.0, y:-1.0, z:0.0};
 				}
 				else if(p.y > (cubeMax.y - epsilon))//top
 				{
 					cSide = 0;
-					norm = vec3(0.0, 1.0, 0.0);
+					norm = -vec3(0.0, 1.0, 0.0);
 					//return {x:0.0, y:1.0, z:0.0};
 				}
 				else if(p.z < (cubeMin.z + epsilon))//back
 				{
 					cSide = 5;
-					norm = vec3(0.0, 0.0, -1.0);
+					norm = -vec3(0.0, 0.0, -1.0);
 					//return {x:0.0, y:0.0, z:-1.0};
 				}
 				else//front
 				{
-					norm = vec3(0.0, 0.0, 1.0);
+					norm = -vec3(0.0, 0.0, 1.0);
 					cSide = 4;
 					//return {x:0.0, y:0.0, z:1.0};
 				}
@@ -394,7 +394,7 @@
 						{
 							if(currentShape == (i+1))
 							{
-								norm = sP - spheres[i].pos;
+								norm = normalize(sP - spheres[i].pos);
 							}							
 						}						
 						texShape = currentShape+5;
@@ -413,7 +413,9 @@
 					int photon;
 					
 					int photonsFound = 0;
-
+					
+					//accumColor = norm;
+					
 					for(int i = 0; i < 128; i++ )
 					{
 						if(photonsFound > 1) break; 						
@@ -428,7 +430,7 @@
 						photonPos -= 127.0;
 						photonPos /= 127.0;
 						
-						if(gatedSqDist(sP, photonPos, 0.008))//find closest 10 photons w/in sq rad 0.7
+						if(gatedSqDist(sP, photonPos, 0.7))//find closest 10 photons w/in sq rad 0.7
 						{
 							photonsFound++;
 							//get dir & pwr
@@ -441,8 +443,12 @@
 							photonDir -= 127.0;
 							photonDir = normalize(photonDir);
 							
-							//accumColor += dot(photonDir, norm)*photonPwr;
-							accumColor = vec3(0.0, 1.0, 0.0);
+							accumColor += dot(photonDir, norm)*photonPwr;
+							//accumColor = photonDir;
+							//accumColor = vec3(dot(norm, photonDir), 0.0, 0.0);
+							//accumColor = vec3(dot(norm, photonDir), 0.0, 0.0);
+							//accumColor = vec3(-photonDir.x, photonDir.y, photonDir.z);
+							//accumColor = vec3(0.0, 1.0, 0.0);
 						}
 					}
 					gl_FragColor = vec4(accumColor, 1.0);
@@ -774,12 +780,12 @@
 									storePhoton(hitPos, nDir, pPwr, (currentShape+5));
 								}							
 
-								//addViz(hitPos, nDir, pPwr);
+								addViz(hitPos, vectMul(nDir, -1), pPwr);
 								
-								if(currentShape == 1)//code
+								/*if(currentShape == 1)//code
 								{
 									addViz(hitPos, nDir, pPwr);
-								}
+								}*/
 								
 								
 								//scale photon power
@@ -818,12 +824,12 @@
 							}
 							else //absorbed
 							{
-								//addViz(hitPos, nDir, pPwr);
+								addViz(hitPos, vectMul(nDir, -1), pPwr);
 								
-								if(currentShape == 1)//code
+								/*if(currentShape == 1)//code
 								{
 									addViz(hitPos, nDir, pPwr);
-								}
+								}*/
 								
 								//console.log(hitPos);
 								//alert("hello");
@@ -904,18 +910,18 @@
 				var index = shape*tW*depth + numberPhotons[shape]*depth;
 
 				//adj values to 0-255 range b4 storing
-				posTexArray[index] = pos.x*127+127;
-				posTexArray[index+1] = pos.y*127+127;
-				posTexArray[index+2] = pos.z*127+127;
+				posTexArray[index] = (pos.x*127+127);
+				posTexArray[index+1] = (pos.y*127+127);
+				posTexArray[index+2] = (pos.z*127+127);
 
-				dirTexArray[index] = dir.x*127+127;
-				dirTexArray[index+1] = dir.y*127+127;
-				dirTexArray[index+2] = dir.z*127+127;
+				dir = vectMul(dir, -1.0);
+				dirTexArray[index] = (dir.x*127+127);
+				dirTexArray[index+1] = (dir.y*127+127);
+				dirTexArray[index+2] = (dir.z*127+127);
 
-				pwrTexArray[index] = pwr.x*255;
-				pwrTexArray[index+1] = pwr.y*255;
-				pwrTexArray[index+2] = pwr.z*255;
-				
+				pwrTexArray[index] = (pwr.x*255);
+				pwrTexArray[index+1] = (pwr.y*255);
+				pwrTexArray[index+2] = (pwr.z*255);				
 								
 				//increment #photons on surface
 				numberPhotons[shape]++;
@@ -999,12 +1005,14 @@
 				var purple = newVec(1, 0, 1);
 				var black = newVec(0, 0, 0);
 				
-				var sphereT = newVec(0.0, 0.26, 0.0);
+				var sphereT = newVec(0.0, 0.255, 0.0);
 				var sphereB = newVec(0.0, -0.26, 0.0);
 				var sphereR = newVec(0.26, 0.0, 0.0);
 				var sphereL = newVec(-0.26, 0.0, 0.0);
 				var sphereF = newVec(0.0, 0.0, 0.26);
 				var sphereB = newVec(0.0, 0.0, -0.26);
+				
+				storePhoton(left, left, red, 2);
 				
 				//var topRight = newVec(1, 1, 1);				
 				/*storePhoton(up, up, red, 0);
@@ -1016,8 +1024,8 @@
 				//storePhoton(center, center, red, 6);
 				//storePhoton(center, center, black, 7);
 				
-				storePhoton(sphereT, down, red, 6);
-				addViz(sphereT, down, red);
+				//storePhoton(sphereT, down, red, 6);
+				/*addViz(sphereT, down, red);
 				storePhoton(sphereB, up, red, 6);
 				addViz(sphereB, up, red, 6);
 				storePhoton(sphereR, left, red, 6);
@@ -1027,7 +1035,7 @@
 				storePhoton(sphereF, back, red, 6);
 				addViz(sphereF, back, red, 6);
 				storePhoton(sphereB, front, red, 6);
-				addViz(sphereB, front, red, 6);
+				addViz(sphereB, front, red, 6);*/
 				
 				//storePhoton(topRight, topRight, red, 3);
 				//storePhoton(topRight, topRight, red, 0);
@@ -1440,7 +1448,7 @@
 				
 				
 				//scatter photons
-				scatterPhotons(200);
+				scatterPhotons(100);
 				//buildGeometry();
 				
 				uniforms =
