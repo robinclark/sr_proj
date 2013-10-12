@@ -64,6 +64,8 @@
 			const int NUM_SPHERES = 1;
 			int currentShape = -1;
 			float epsilon = 0.0001;
+			float gSqDist = 0.0;
+			float exposure = 50.0;
 
 			//lights
 			struct PointLight
@@ -356,7 +358,7 @@
 				c = a.z - b.z;
 				d += c*c;
 				if (d > sqradius) return false; //Gate 3
-				//gSqDist = d;
+				gSqDist = d;
 				return true ; //Store Squared Distance Itself in Global State
 			}
 
@@ -418,13 +420,13 @@
 					
 					for(int i = 0; i < 128; i++ )
 					{
-						if(photonsFound > 1) break; 						
+						//(photonsFound > 30) break; 						
 						//photon = float(i)/texWidth;//u coord
 						vec2 st = (vec2(float(i), texShapeIndex)+ 0.5)*sizeInv;
 						//get position
 						//vec3 photonPos = vec3(texture2D(tPos, vec2(photon, texShapeIndex)));
 						vec3 photonPos = vec3(texture2D(tPos, st));
-						if(photonPos.x == 0.0 && photonPos.y == 0.0 && photonPos.z == 0.0) break;
+						if(photonPos.x == 0.0 && photonPos.y == 0.0 && photonPos.z == 0.0) break;//break if pass thru all photons for shape
 						//rescale pos
 						photonPos *= 255.0;
 						photonPos -= 127.0;
@@ -443,12 +445,17 @@
 							photonDir -= 127.0;
 							photonDir = normalize(photonDir);
 							
-							accumColor += dot(photonDir, norm)*photonPwr;
+							//float x = max(0.0, 1.0);
+							//float dProd = dot(photonDir, norm)*photonPwr;
+							float weight = max(0.0, dot(photonDir, norm));//ga tech
+							weight *= (1.0 - sqrt(gSqDist)) / exposure;//ga tech
+							accumColor += photonPwr*weight;
+							//accumColor += dot(photonDir, norm)*photonPwr;
 							//accumColor = photonDir;
 							//accumColor = vec3(dot(norm, photonDir), 0.0, 0.0);
 							//accumColor = vec3(dot(norm, photonDir), 0.0, 0.0);
 							//accumColor = vec3(-photonDir.x, photonDir.y, photonDir.z);
-							//accumColor = vec3(0.0, 1.0, 0.0);
+							//accumColor = vec3(weight, 0.0, 0.0);
 						}
 					}
 					gl_FragColor = vec4(accumColor, 1.0);
@@ -657,7 +664,7 @@
 			//Photon Mapping
 			//-------------------------------------------------------------------------------------//			
 			//texture globals
-			var tW = 128, tH = 8, depth = 3; // texture dims
+			var tW = 512, tH = 8, depth = 3; // texture dims
 			var size = tW*tH*depth;
 			//texture arrays
 			var posTexArray = new Uint8Array(size), dirTexArray = new Uint8Array(size), pwrTexArray = new Uint8Array(size);
@@ -702,7 +709,7 @@
 					pPos = vCopy(l1Pos);
 					
 					//starting pwr
-					pPwr = vCopy(l1Col);
+					pPwr = l1Col;
 					
 					//while photon has intersected something and hasn't bounced 3 times
 					while(bounces <= maxBounces)//add caustics later
@@ -768,6 +775,7 @@
 
 							if(fate == DIFFUSE)//diffusely reflected
 							{
+								pPwr = vectMul(shapeDiffuse, 1.0/Math.sqrt(bounces));
 								
 								//alert("hello");
 								//get shape & store
@@ -789,8 +797,9 @@
 								
 								
 								//scale photon power
-								pPwr = vMultComponent(pPwr, shapeDiffuse);
-								pPwr = vDivide(pPwr,powerScale);
+								//pPwr = vMultComponent(pPwr, shapeDiffuse);
+								//pPwr = vDivide(pPwr,powerScale);
+								
 								//pPwr = vectMul(pPwr, 100);/*scaling up pwr*/
 								
 								//reflect photon & adjust slightly
@@ -1448,7 +1457,7 @@
 				
 				
 				//scatter photons
-				scatterPhotons(100);
+				scatterPhotons(1000);
 				//buildGeometry();
 				
 				uniforms =
