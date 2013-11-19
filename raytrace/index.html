@@ -4,7 +4,7 @@
 	<head>
 		<title>three.js webgl - render-to-texture</title>
 		<meta charset="utf-8">
-		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<meta name="viewport" content="width=device-width, user-scalable=yes, minimum-scale=1.0, maximum-scale=1.0">
 		<style>
 			body {
 				color: #111111;
@@ -418,7 +418,7 @@
 					
 					//accumColor = norm;
 					
-					for(int i = 0; i < 128; i++ )
+					for(int i = 0; i < 1024; i++ )
 					{
 						//(photonsFound > 30) break; 						
 						//photon = float(i)/texWidth;//u coord
@@ -618,8 +618,18 @@
 			var up;
 			var center;			
 			var plotPos;
-			var attributes;			
-
+			var attributes;
+			
+			var view =
+			{
+				left: 0,
+				bottom: 0,
+				width: 640,
+				height: 400
+			};
+			
+			var wWidth = window.innerWidth, wHeight = window.innerHeight;
+			
 			//-------------------------------------------------------------------------------------//
 			//cube info
 			//-------------------------------------------------------------------------------------//			
@@ -640,7 +650,7 @@
 			var spheres = [];
 
 			var s1Pos = {x: 0, y: 0, z:0};
-			var s1Diffuse = {x: 0, y: 0, z:1};//{x: 0.76, y: 0.75, z:0.5};
+			var s1Diffuse = {x: 0.76, y: 0.75, z:0.5};//{x: 0, y: 0, z:1};//
 			var s1Refl = 0;
 			var s1Transp = 0;
 
@@ -1396,10 +1406,18 @@
 			function init() {
 				//console.log("init");
 				container = document.getElementById( 'container' );
-
+				
+				var left   = Math.floor( wWidth  * view.left );
+				var bottom = Math.floor( wHeight * view.bottom );
+				var width  = Math.floor( view.width );
+				var height = Math.floor( view.height );
+				
 				renderer = new THREE.WebGLRenderer();
-				renderer.setSize( 640, 400 );
-				renderer.autoClear = false;
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.setViewport( (wWidth-view.width)/2, (wHeight-view.height)/2, view.width, view.height );
+
+				//renderer.setSize( 640, 400 );
+				//renderer.autoClear = false;
 
 				container.appendChild( renderer.domElement );
 
@@ -1646,7 +1664,7 @@
 				
 				attributes.aPlotPosition.needsUpdate = true;
 
-				renderer.clear();
+				//renderer.clear();
 
 				// Render first scene into texture
 				//--renderer.render( sceneRTT, cameraRTT, rtTexture, true );
@@ -1660,6 +1678,8 @@
 				renderer.setViewport( 100, 200, 640, 400 );
 				//renderer.setScissor(left, bottom, 640, 400);
 				//renderer.enableScissorTest ( true )*/
+				
+				
 
 				renderer.render( sceneRTT, cameraRTT );		
 				//renderer.render( sampleTexScreen, cameraRTT );
