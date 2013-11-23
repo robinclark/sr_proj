@@ -1877,16 +1877,18 @@
 			
 			function testFunc()
 			{
-				alert("hello");
-				scatterPhotons(100);
+				//alert("hello");
+				//scatterPhotons(100);
 				//var pos = {x: 0, y: 0, z: -1};
 				//uniforms.cameraPos = pos;
 				//init();
 				//animate();
 				//TYPE = SCATTER;
 				//init();
-				uniforms["spheres[0].pos"].value = [0.0, -0.7, 0.0];
+				//uniforms["spheres[0].pos"].value = [0.0, -0.7, 0.0];
 				//resetUniforms();
+				var val = document.getElementById("photons").value;
+				scatterPhotons(val);
 			}
 			
 			init();
