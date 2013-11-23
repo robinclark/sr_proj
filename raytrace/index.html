@@ -412,6 +412,8 @@
 				vec2 sizeInv = 1.0/size;
 				//vec2 st = (vec2(0.0, 0.0)+0.5)*sizeInv;
 				
+			if(index == 0)
+			{
 				if(hit)
 				{
 					//get shape hit and normal					
@@ -492,12 +494,18 @@
 				}
 				else
 				{
-					gl_FragColor = vec4(0.0, 0.5, 0.5, 1.0);
+					
+					
+						gl_FragColor = vec4(0.0, 0.5, 0.5, 1.0);
+					
+					
 				}
 				
 				//gl_FragColor = vec4(accumColor, 1.0);
-				
-				/*if (hit)
+			}
+			else
+			{
+				if (hit)
 				{					
 					vec3 sN, sC = vec3(0.0, 0.0, 0.0), reflC = vec3(0.0, 0.0,0.0), refrC = vec3(0.0, 0.0, 0.0);
 					sC = getColor(currentShape, sP, sN);
@@ -572,7 +580,8 @@
 				else
 				{
       					gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
-				}*/
+				}
+			}
 				//texShapeIndex = (8.0-0.0+1.0))/8.0;
 				//float photon = 0.0;
 				//vec3 photonPos = vec3(texture2D(tPos, vec2(photon, texShapeIndex)));
@@ -745,7 +754,7 @@
 				dirTexArray = new Uint8Array(size);
 				pwrTexArray = new Uint8Array(size);
 				
-				alert("scattering");
+				//alert("scattering");
 				var hit = false;
 				//pPwr = vDivide(l1Col, 50);
 				for(var i = 0; i < n; i++)
@@ -1543,7 +1552,7 @@
 					index:
 					{
 						type: "i",
-						value: 3
+						value: 0
 					},
 					//number photons on each shape
 					numPhotons:
@@ -1740,6 +1749,7 @@
 				}
 				else if (TYPE == RAYTRACE) {
 					//code
+					uniforms.index.value = 1;
 				}
 				else{
 					
@@ -1883,12 +1893,16 @@
 				//uniforms.cameraPos = pos;
 				//init();
 				//animate();
-				//TYPE = SCATTER;
+				
 				//init();
 				//uniforms["spheres[0].pos"].value = [0.0, -0.7, 0.0];
 				//resetUniforms();
-				var val = document.getElementById("photons").value;
-				scatterPhotons(val);
+				
+				//var val = document.getElementById("photons").value;
+				//scatterPhotons(val);
+				
+				//TYPE = SCATTER;
+				uniforms.index.value = 1;
 			}
 			
 			init();
