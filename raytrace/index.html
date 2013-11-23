@@ -33,7 +33,10 @@
 	<body>
 			
 		<!--***Button & input**-->
-		<button type="button" id = "b1" onclick="alert('Hello world!')">Click Me!</button>
+		<button type="button" id = "b1" onclick="testFunc()">Start</button>		
+		<label id = "photonLabel">Photons:</label> <input type="text" id="photons" value="1000" />
+		
+		
 		<script>
 			var x = 100;
 			var y = 200;
@@ -41,6 +44,21 @@
 			document.getElementById("b1").style.top= y +"px";
 			document.getElementById("b1").style.right= x + "px";
 			document.getElementById("b1").style.width = 150 + "px";
+			document.getElementById("b1").style.borderTopColor = "white";
+			
+			
+			y -=40;
+			document.getElementById("photons").style.position="fixed";
+			document.getElementById("photons").style.top= y +"px";
+			document.getElementById("photons").style.right= x + "px";
+			document.getElementById("photons").style.width = 150 + "px";
+			
+			y-=30;
+			document.getElementById("photonLabel").style.position="fixed";
+			document.getElementById("photonLabel").style.top= y +"px";
+			document.getElementById("photonLabel").style.right= x + "px";
+			document.getElementById("photonLabel").style.width = 150 + "px";
+			document.getElementById("photonLabel").style.color = "white";
 		</script>
 		
 		
@@ -617,6 +635,9 @@
 		<script>
 
 			if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
+			
+			var SCATTER = 0, PHOTON = 1, RAYTRACE = 2;
+			var TYPE = 1;
 
 			//cam stuff
 			var rtTexture, material, quad;
@@ -718,7 +739,13 @@
 
 			//scatter n photons in scene & store in arrays for upload to textures
 			function scatterPhotons(n)
-			{			
+			{
+				numberPhotons = [0, 0, 0, 0, 0, 0, 0, 0];
+				posTexArray = new Uint8Array(size);
+				dirTexArray = new Uint8Array(size);
+				pwrTexArray = new Uint8Array(size);
+				
+				alert("scattering");
 				var hit = false;
 				//pPwr = vDivide(l1Col, 50);
 				for(var i = 0; i < n; i++)
@@ -886,6 +913,7 @@
 				}
 				buildTextures();
 				buildGeometry();
+				uniforms.numPhotons.value = numberPhotons;
 			}
 			
 			function addViz(pos, dir, pwr)
@@ -904,6 +932,10 @@
 				posTex.needsUpdate = true;
 				dirTex.needsUpdate = true;
 				pwrTex.needsUpdate = true;
+				
+				uniforms.tDir.value = dirTex;
+				uniforms.tPos.value = posTex;
+				uniforms.tPwr.value = pwrTex;
 			}
 
 			//determine fate of photon
@@ -1493,7 +1525,7 @@
 				
 				
 				//scatter photons
-				scatterPhotons(1000);
+				//scatterPhotons(1000);
 				//buildGeometry();
 				
 				uniforms =
@@ -1563,7 +1595,9 @@
 						type: 'fv', // vec3
 						value: [0, 0, 0]
 					},
-				};			
+				};
+				
+				scatterPhotons(1000);
 
 				attributes = {
 					aPlotPosition: {
@@ -1698,8 +1732,19 @@
 				//renderer.enableScissorTest ( true )*/
 				
 				
-
-				renderer.render( sceneRTT, cameraRTT );		
+				if (TYPE == SCATTER) {
+					renderer.render(photonScene, perspCamera);
+				}
+				else if (TYPE == PHOTON) {
+					renderer.render( sceneRTT, cameraRTT );
+				}
+				else if (TYPE == RAYTRACE) {
+					//code
+				}
+				else{
+					
+				}
+				//renderer.render( sceneRTT, cameraRTT );		
 				//renderer.render( sampleTexScreen, cameraRTT );
 				//renderer.render(photonScene, perspCamera);
 				
@@ -1827,6 +1872,23 @@
 			//testIntersections();
 			//testPhoton();
 			//testCubeColor();
+			
+			
+			
+			function testFunc()
+			{
+				alert("hello");
+				scatterPhotons(100);
+				//var pos = {x: 0, y: 0, z: -1};
+				//uniforms.cameraPos = pos;
+				//init();
+				//animate();
+				//TYPE = SCATTER;
+				//init();
+				uniforms["spheres[0].pos"].value = [0.0, -0.7, 0.0];
+				//resetUniforms();
+			}
+			
 			init();
 			animate();
 
