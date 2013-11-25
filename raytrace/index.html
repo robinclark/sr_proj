@@ -269,16 +269,18 @@
 			}
 		
 			//calc lighting
-			vec3 colorAt(vec3 c, vec3 pos, vec3 n)
+			vec3 colorAt(vec3 c, vec3 pos, vec3 n, vec3 camDir, int shape)
 			{
-				vec3 color = vec3(0.0, 0.0, 0.0);
+				vec3 color = vec3(0.0, 0.0, 0.0);				
 				
 				for (int i = 0; i < 1; i++) 
 				{					
 					vec3 lDir = (lights[i].pos - pos);
 					float dist = length(lDir);					
 					lDir = normalize(lDir);
-					float lamb = dot(n, lDir);					
+					float lamb = dot(n, lDir);
+					vec3 R = 2.0*lamb*n - lDir;
+					float spec = dot(R,-camDir);
 
 					//cull possible intersections if normals in diff dir's
 					if ( lamb <= 0.0 )
@@ -292,10 +294,20 @@
 					}			
 					
 					//calc color					
-					color += c * lights[i].col * lamb;
+					//color += c * lights[i].col * lamb;
+					if(shape > 0)
+					{
+						color += lights[i].col*(lamb*c + spec*spec*spec*spec*spec);
+					}
+					else
+					{
+						color += c * lights[i].col * lamb;
+					}
+					
 				}
 				//add ambient light			
-				color += ambientLight * c;
+				//color += ambientLight * c;
+				
 				return color;
 			}
 			
@@ -352,7 +364,7 @@
 				else return vec3(0.76, 0.75, 0.5);//front
 			}
 			
-			vec3 getColor(int shape, vec3 pos, out vec3 norm)
+			vec3 getColor(int shape, vec3 pos, out vec3 norm, vec3 cameraDir)
 			{
 				vec3 n, c;
 				if(shape == 0)//cube
@@ -378,7 +390,7 @@
 				}
 
 				norm = n;
-				return colorAt(c, pos, n);
+				return colorAt(c, pos, n, cameraDir, shape);
 			}
 			
 			void cubeSideNormal(vec3 p, out int cSide, out vec3 norm)
@@ -541,7 +553,7 @@
 				{
 					
 					
-						gl_FragColor = vec4(0.0, 0.5, 0.5, 1.0);
+						gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
 					
 					
 				}
@@ -553,7 +565,7 @@
 				if (hit)
 				{					
 					vec3 sN, sC = vec3(0.0, 0.0, 0.0), reflC = vec3(0.0, 0.0,0.0), refrC = vec3(0.0, 0.0, 0.0);
-					sC = getColor(currentShape, sP, sN);
+					sC = getColor(currentShape, sP, sN, cameraDir);
 					
 					for(int i = 0; i < NUM_SPHERES; i++)
 					{
@@ -567,7 +579,7 @@
 								vec3 rN, reflP, reflD = reflect(cameraDir, sN);
 								if(intersectScene(sP + 0.01*sN, reflD, reflP))
 								{
-									reflC = getColor(currentShape, reflP, rN);
+									reflC = getColor(currentShape, reflP, rN, cameraDir);
 									sC = reflC*spheres[i].reflectance;
 								}
 								currentShape = tempShape;
@@ -593,7 +605,7 @@
 									int tempShape = currentShape;
 									if(intersectScene(refrP - 0.01*rN, refrD, refrP))
 									{
-										refrC = getColor(currentShape, refrP, rN);
+										refrC = getColor(currentShape, refrP, rN, cameraDir);
 										//mix reflective & refr colors if both enabled
 										if(spheres[i].reflectance > 0.0)
 										{
@@ -602,7 +614,7 @@
 										}
 										else
 										{
-											sC = (1.0-spheres[i].transparency)*refrC;
+											sC = (spheres[i].transparency)*refrC + sC;
 										}										
 									}
 									currentShape = tempShape;
@@ -1953,11 +1965,17 @@
 			function setTransparency()
 			{
 				var val = document.getElementById("trans").value;
+				if (val > 1) {
+					val = 1;
+				}
 				uniforms["spheres[0].transparency"].value = val;
 			}
 			
 			function setReflectivity()
 			{
+				if (val > 1) {
+					val = 1;
+				}
 				var val = document.getElementById("refl").value;
 				uniforms["spheres[0].reflectance"].value = val;
 			}
@@ -1985,7 +2003,7 @@
 				else
 				{
 					TYPE = SCATTER;
-					resetScatter();
+					//resetScatter();
 				}
 			}
 			
