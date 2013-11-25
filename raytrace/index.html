@@ -32,45 +32,66 @@
 	</head>
 	<body>
 			
-		<!--***Button & input**-->
-		<button type="button" id = "b1" onclick="resetPhotons()">Start</button>		
+		<!--***Button & input**-->		
 		<label id = "photonLabel">Photons:</label> <input type="text" id="photons" value="1000" />
 		
 		<button type="button" id = "ray" onclick="renderOption(0)">Ray Trace</button>
 		<button type="button" id = "photon" onclick="renderOption(1)">Photon Map</button>
 		<button type="button" id = "scatter" onclick="renderOption(2)">Photon Scatter</button>
 		
+		<label id = "transLabel">Transparency(0-1):</label> <input type="text" id="trans" value="0.0" />
+		<label id = "reflLabel">Reflectivity(0-1):</label> <input type="text" id="refl" value="0.0" />
+		
 		<script>
 			var x = 100;
-			var y = 200;
-
-			document.getElementById("photonLabel").style.position="fixed";
-			document.getElementById("photonLabel").style.top= y +"px";
-			document.getElementById("photonLabel").style.right= x + "px";
-			document.getElementById("photonLabel").style.width = 150 + "px";
-			document.getElementById("photonLabel").style.color = "white";
+			var y = 150;
+		
+			document.getElementById("transLabel").style.position="fixed";
+			document.getElementById("transLabel").style.top= y +"px";
+			document.getElementById("transLabel").style.right= x + "px";
+			document.getElementById("transLabel").style.width = 150 + "px";
+			document.getElementById("transLabel").style.color = "white";
 			
-			y +=40;
-			document.getElementById("photons").style.position="fixed";
-			document.getElementById("photons").style.top= y +"px";
-			document.getElementById("photons").style.right= x + "px";
-			document.getElementById("photons").style.width = 150 + "px";			
+			y+= 30;
+			document.getElementById("trans").style.position="fixed";
+			document.getElementById("trans").style.top= y +"px";
+			document.getElementById("trans").style.right= x + "px";
+			document.getElementById("trans").style.width = 150 + "px";
 			
-			y+= 40
-			document.getElementById("b1").style.position="fixed";
-			document.getElementById("b1").style.top= y +"px";
-			document.getElementById("b1").style.right= x + "px";
-			document.getElementById("b1").style.width = 150 + "px";
-			document.getElementById("b1").style.borderTopColor = "white";
+			y+= 40;
+			document.getElementById("reflLabel").style.position="fixed";
+			document.getElementById("reflLabel").style.top= y +"px";
+			document.getElementById("reflLabel").style.right= x + "px";
+			document.getElementById("reflLabel").style.width = 150 + "px";
+			document.getElementById("reflLabel").style.color = "white";
 			
-			y+= 100;
+			y+=30;
+			document.getElementById("refl").style.position="fixed";
+			document.getElementById("refl").style.top= y +"px";
+			document.getElementById("refl").style.right= x + "px";
+			document.getElementById("refl").style.width = 150 + "px";			
+			
+			y+= 40;
 			document.getElementById("ray").style.position="fixed";
 			document.getElementById("ray").style.top= y +"px";
 			document.getElementById("ray").style.right= x + "px";
 			document.getElementById("ray").style.width = 150 + "px";
 			document.getElementById("ray").style.borderTopColor = "white";
 			
-			y+=40;
+			y+= 100;
+			document.getElementById("photonLabel").style.position="fixed";
+			document.getElementById("photonLabel").style.top= y +"px";
+			document.getElementById("photonLabel").style.right= x + "px";
+			document.getElementById("photonLabel").style.width = 150 + "px";
+			document.getElementById("photonLabel").style.color = "white";
+			
+			y+= 30;
+			document.getElementById("photons").style.position="fixed";
+			document.getElementById("photons").style.top= y +"px";
+			document.getElementById("photons").style.right= x + "px";
+			document.getElementById("photons").style.width = 150 + "px";
+			
+			y+= 40;
 			document.getElementById("photon").style.position="fixed";
 			document.getElementById("photon").style.top= y +"px";
 			document.getElementById("photon").style.right= x + "px";
@@ -82,8 +103,7 @@
 			document.getElementById("scatter").style.top= y +"px";
 			document.getElementById("scatter").style.right= x + "px";
 			document.getElementById("scatter").style.width = 150 + "px";
-			document.getElementById("scatter").style.borderTopColor = "white";
-			
+			document.getElementById("scatter").style.borderTopColor = "white";			
 		</script>
 		
 		
@@ -672,6 +692,7 @@
 			
 			var SCATTER = 0, PHOTON = 1, RAYTRACE = 2;
 			var TYPE = PHOTON;
+			var canScatter = true;
 
 			//cam stuff
 			var rtTexture, material, quad;
@@ -778,6 +799,11 @@
 				posTexArray = new Uint8Array(size);
 				dirTexArray = new Uint8Array(size);
 				pwrTexArray = new Uint8Array(size);
+				
+				posViz = [];
+				dirViz = [];
+				powViz = [];
+				
 				
 				//alert("scattering");
 				var hit = false;
@@ -1924,19 +1950,42 @@
 				//uniforms.index.value = 1;
 			}
 			
+			function setTransparency()
+			{
+				var val = document.getElementById("trans").value;
+				uniforms["spheres[0].transparency"].value = val;
+			}
+			
+			function setReflectivity()
+			{
+				var val = document.getElementById("refl").value;
+				uniforms["spheres[0].reflectance"].value = val;
+			}
+			
+			function resetScatter()
+			{
+					var val = document.getElementById("photons").value;
+					scatterPhotons(val);			
+			}
+			
 			function renderOption(option)
 			{
 				if (option == 0) {
 					TYPE = RAYTRACE;
+					setTransparency();
+					setReflectivity();
+			
 					uniforms.index.value = 1;
 				}
 				else if (option == 1) {
+					resetScatter();
 					TYPE = PHOTON;
 					uniforms.index.value = 0;
 				}
 				else
 				{
 					TYPE = SCATTER;
+					resetScatter();
 				}
 			}
 			
